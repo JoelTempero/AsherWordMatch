@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Word Match">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <title>Word Match Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #FF6B9D;
+            --secondary: #7C4DFF;
+            --success: #00E676;
+            --warning: #FFD54F;
+            --bg-gradient-1: #FFF3E0;
+            --bg-gradient-2: #E8F5E9;
+            --bg-gradient-3: #E3F2FD;
+            --card-shadow: 0 8px 32px rgba(0,0,0,0.12);
+            --bounce: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Fredoka', sans-serif;
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            background: linear-gradient(135deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 50%, var(--bg-gradient-3) 100%);
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        /* Floating background shapes */
+        .bg-shapes {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .shape {
+            position: absolute;
+            border-radius: 50%;
+            opacity: 0.3;
+            animation: float 20s infinite ease-in-out;
+        }
+
+        .shape:nth-child(1) {
+            width: 200px;
+            height: 200px;
+            background: var(--primary);
+            top: -50px;
+            left: -50px;
+            animation-delay: 0s;
+        }
+
+        .shape:nth-child(2) {
+            width: 150px;
+            height: 150px;
+            background: var(--secondary);
+            top: 20%;
+            right: -30px;
+            animation-delay: -5s;
+        }
+
+        .shape:nth-child(3) {
+            width: 180px;
+            height: 180px;
+            background: var(--warning);
+            bottom: 10%;
+            left: 5%;
+            animation-delay: -10s;
+        }
+
+        .shape:nth-child(4) {
+            width: 120px;
+            height: 120px;
+            background: var(--success);
+            bottom: -30px;
+            right: 20%;
+            animation-delay: -15s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(20px, -30px) rotate(5deg); }
+            50% { transform: translate(-10px, 20px) rotate(-3deg); }
+            75% { transform: translate(15px, 10px) rotate(3deg); }
+        }
+
+        /* Main container */
+        .container {
+            position: relative;
+            z-index: 1;
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 10px;
+        }
+
+        .score-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--secondary);
+        }
+
+        .score-display .star {
+            font-size: 1.6rem;
+        }
+
+        .set-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #666;
+            text-align: center;
+            flex: 1;
+        }
+
+        .header-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 15px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s var(--bounce);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #FF8A80);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, var(--secondary), #B388FF);
+            color: white;
+        }
+
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+
+        /* Game Grid */
+        .game-area {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 12px;
+            width: 100%;
+            max-width: 500px;
+            aspect-ratio: 1;
+        }
+
+        .grid-cell {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s var(--bounce);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .grid-cell.word-cell {
+            padding: 10px;
+        }
+
+        .grid-cell.word-cell .word {
+            font-family: 'Nunito', sans-serif;
+            font-size: clamp(1rem, 4vw, 1.5rem);
+            font-weight: 700;
+            color: #333;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .grid-cell.center-cell {
+            background: linear-gradient(135deg, #FFF9C4, #FFECB3);
+            border: 4px dashed var(--warning);
+        }
+
+        .grid-cell.drop-target {
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        @keyframes pulse {
+            from { box-shadow: var(--card-shadow), 0 0 0 0 rgba(124, 77, 255, 0.4); }
+            to { box-shadow: var(--card-shadow), 0 0 0 15px rgba(124, 77, 255, 0); }
+        }
+
+        .grid-cell.correct {
+            background: linear-gradient(135deg, #A5D6A7, var(--success)) !important;
+            animation: celebrate 0.6s var(--bounce);
+        }
+
+        .grid-cell.wrong {
+            background: linear-gradient(135deg, #FFCDD2, #EF5350) !important;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        @keyframes celebrate {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15) rotate(5deg); }
+            100% { transform: scale(1); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-10px); }
+            40% { transform: translateX(10px); }
+            60% { transform: translateX(-10px); }
+            80% { transform: translateX(10px); }
+        }
+
+        /* Picture in center */
+        .picture-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 15px;
+        }
+
+        .draggable-picture {
+            width: 90%;
+            height: 90%;
+            object-fit: contain;
+            cursor: grab;
+            transition: transform 0.2s ease;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+        }
+
+        .draggable-picture:active {
+            cursor: grabbing;
+        }
+
+        .draggable-picture.dragging {
+            opacity: 0.8;
+            transform: scale(1.1);
+            z-index: 1000;
+        }
+
+        /* Clone being dragged */
+        .drag-clone {
+            position: fixed;
+            pointer-events: none;
+            z-index: 9999;
+            filter: drop-shadow(0 8px 20px rgba(0,0,0,0.3));
+            transition: transform 0.1s ease;
+        }
+
+        /* Menu screens */
+        .screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, var(--bg-gradient-1) 0%, var(--bg-gradient-2) 50%, var(--bg-gradient-3) 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.4s ease;
+        }
+
+        .screen.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .screen-title {
+            font-family: 'Nunito', sans-serif;
+            font-size: clamp(2rem, 8vw, 3.5rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .set-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 400px;
+            max-height: 50vh;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .set-card {
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+            cursor: pointer;
+            transition: all 0.3s var(--bounce);
+        }
+
+        .set-card:active {
+            transform: scale(0.98);
+        }
+
+        .set-card h3 {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.3rem;
+            color: var(--secondary);
+            margin-bottom: 5px;
+        }
+
+        .set-card p {
+            font-size: 0.9rem;
+            color: #888;
+        }
+
+        /* Login Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 25px;
+            padding: 30px;
+            width: 90%;
+            max-width: 350px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            transform: scale(0.9);
+            transition: transform 0.3s var(--bounce);
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal h2 {
+            font-family: 'Nunito', sans-serif;
+            color: var(--secondary);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #E0E0E0;
+            border-radius: 12px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--secondary);
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons .btn {
+            flex: 1;
+        }
+
+        .error-msg {
+            color: #EF5350;
+            font-size: 0.85rem;
+            text-align: center;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* Admin Portal */
+        .admin-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #F5F5F5;
+            z-index: 150;
+            display: none;
+            flex-direction: column;
+        }
+
+        .admin-container.active {
+            display: flex;
+        }
+
+        .admin-header {
+            background: linear-gradient(135deg, var(--secondary), #B388FF);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .admin-header h1 {
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.5rem;
+        }
+
+        .admin-content {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .admin-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+        }
+
+        .admin-section h2 {
+            font-family: 'Nunito', sans-serif;
+            color: var(--secondary);
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+        }
+
+        .set-list-admin {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .set-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            background: #F8F8F8;
+            border-radius: 10px;
+        }
+
+        .set-item-info h4 {
+            font-size: 1rem;
+            color: #333;
+        }
+
+        .set-item-info span {
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        .set-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-edit {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-delete {
+            background: #EF5350;
+            color: white;
+        }
+
+        /* Edit Set Modal */
+        .edit-modal {
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .word-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .word-item {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .word-item input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #E0E0E0;
+            border-radius: 10px;
+            font-family: 'Fredoka', sans-serif;
+        }
+
+        .word-item input[type="file"] {
+            display: none;
+        }
+
+        .upload-btn {
+            padding: 10px 15px;
+            background: var(--warning);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'Fredoka', sans-serif;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .word-item .preview {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: #EEE;
+        }
+
+        .btn-remove-word {
+            width: 30px;
+            height: 30px;
+            border: none;
+            border-radius: 8px;
+            background: #FFCDD2;
+            color: #EF5350;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        /* Celebration overlay */
+        .celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            animation: fall 3s linear forwards;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+
+        /* Progress bar */
+        .progress-container {
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 15px;
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            height: 12px;
+            background: #E0E0E0;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), #69F0AE);
+            border-radius: 6px;
+            transition: width 0.5s var(--bounce);
+        }
+
+        .progress-text {
+            text-align: center;
+            margin-top: 5px;
+            font-weight: 600;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Complete screen */
+        .complete-content {
+            text-align: center;
+        }
+
+        .complete-stars {
+            font-size: 4rem;
+            margin: 20px 0;
+            animation: bounce 1s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .complete-score {
+            font-family: 'Nunito', sans-serif;
+            font-size: 2rem;
+            color: var(--secondary);
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Background shapes -->
+    <div class="bg-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+
+    <!-- Main Menu Screen -->
+    <div class="screen active" id="menuScreen">
+        <h1 class="screen-title">🌟 Word Match 🌟</h1>
+        <div class="set-list" id="setList"></div>
+        <div style="margin-top: 20px;">
+            <button class="btn btn-secondary btn-small" id="loginBtn">🔐 Login</button>
+        </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div class="container" id="gameScreen" style="display: none;">
+        <div class="header">
+            <div class="score-display">
+                <span class="star">⭐</span>
+                <span id="scoreValue">0</span>
+            </div>
+            <div class="set-name" id="currentSetName"></div>
+            <div class="header-buttons">
+                <button class="btn btn-primary btn-small" id="menuBtn">Menu</button>
+            </div>
+        </div>
+
+        <div class="game-area">
+            <div class="game-grid" id="gameGrid">
+                <!-- Grid cells will be generated by JS -->
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+            </div>
+            <div class="progress-text" id="progressText">0 / 0</div>
+        </div>
+    </div>
+
+    <!-- Complete Screen -->
+    <div class="screen" id="completeScreen">
+        <div class="complete-content">
+            <h1 class="screen-title">Amazing! 🎉</h1>
+            <div class="complete-stars">⭐⭐⭐</div>
+            <div class="complete-score" id="finalScore">You got 20 points!</div>
+            <button class="btn btn-primary" id="playAgainBtn">Play Again</button>
+            <button class="btn btn-secondary" id="menuBtn2" style="margin-top: 15px;">Back to Menu</button>
+        </div>
+    </div>
+
+    <!-- Login Modal -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="modal">
+            <h2>🔐 Admin Login</h2>
+            <div class="form-group">
+                <label>Username</label>
+                <input type="text" id="usernameInput" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" id="passwordInput">
+            </div>
+            <div class="error-msg" id="loginError">Wrong username or password</div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="cancelLogin">Cancel</button>
+                <button class="btn btn-primary" id="submitLogin">Login</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Portal -->
+    <div class="admin-container" id="adminPortal">
+        <div class="admin-header">
+            <h1>📚 Card Set Manager</h1>
+            <button class="btn btn-primary btn-small" id="logoutBtn">Logout</button>
+        </div>
+        <div class="admin-content">
+            <div class="admin-section">
+                <h2>Your Card Sets</h2>
+                <div class="set-list-admin" id="adminSetList"></div>
+                <button class="btn btn-secondary" id="addSetBtn" style="margin-top: 15px; width: 100%;">+ Add New Set</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Set Modal -->
+    <div class="modal-overlay" id="editSetModal">
+        <div class="modal edit-modal">
+            <h2 id="editSetTitle">Edit Card Set</h2>
+            <div class="form-group">
+                <label>Set Name</label>
+                <input type="text" id="setNameInput" placeholder="e.g., Animals, Colors...">
+            </div>
+            <div class="word-list" id="wordList"></div>
+            <button class="btn btn-secondary" id="addWordBtn" style="margin-top: 15px; width: 100%;">+ Add Word</button>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="cancelEditSet">Cancel</button>
+                <button class="btn btn-primary" id="saveSetBtn">Save Set</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Celebration container -->
+    <div class="celebration" id="celebration"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
