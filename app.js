@@ -1,10 +1,11 @@
 // Word Match Game - Main Application
 
-// Default card sets (built-in)
-const defaultSets = [
+// Default card sets (built-in starter packs - can be overridden in localStorage)
+const builtInSets = [
     {
         id: 'colors',
         name: 'Colors',
+        isBuiltIn: true,
         words: [
             { word: 'Red', image: 'images/colors/red.svg' },
             { word: 'Blue', image: 'images/colors/blue.svg' },
@@ -15,12 +16,18 @@ const defaultSets = [
             { word: 'Pink', image: 'images/colors/pink.svg' },
             { word: 'Brown', image: 'images/colors/brown.svg' },
             { word: 'Black', image: 'images/colors/black.svg' },
-            { word: 'White', image: 'images/colors/white.svg' }
+            { word: 'White', image: 'images/colors/white.svg' },
+            { word: 'Grey', image: 'images/colors/grey.svg' },
+            { word: 'Gold', image: 'images/colors/gold.svg' },
+            { word: 'Silver', image: 'images/colors/silver.svg' },
+            { word: 'Cyan', image: 'images/colors/cyan.svg' },
+            { word: 'Lime', image: 'images/colors/lime.svg' }
         ]
     },
     {
         id: 'animals',
         name: 'Animals',
+        isBuiltIn: true,
         words: [
             { word: 'Cat', image: 'images/animals/cat.svg' },
             { word: 'Dog', image: 'images/animals/dog.svg' },
@@ -31,12 +38,18 @@ const defaultSets = [
             { word: 'Cow', image: 'images/animals/cow.svg' },
             { word: 'Pig', image: 'images/animals/pig.svg' },
             { word: 'Duck', image: 'images/animals/duck.svg' },
-            { word: 'Sheep', image: 'images/animals/sheep.svg' }
+            { word: 'Sheep', image: 'images/animals/sheep.svg' },
+            { word: 'Frog', image: 'images/animals/frog.svg' },
+            { word: 'Bee', image: 'images/animals/bee.svg' },
+            { word: 'Lion', image: 'images/animals/lion.svg' },
+            { word: 'Mouse', image: 'images/animals/mouse.svg' },
+            { word: 'Snake', image: 'images/animals/snake.svg' }
         ]
     },
     {
         id: 'items',
         name: 'Simple Items',
+        isBuiltIn: true,
         words: [
             { word: 'Ball', image: 'images/items/ball.svg' },
             { word: 'Book', image: 'images/items/book.svg' },
@@ -47,7 +60,12 @@ const defaultSets = [
             { word: 'Phone', image: 'images/items/phone.svg' },
             { word: 'Clock', image: 'images/items/clock.svg' },
             { word: 'Key', image: 'images/items/key.svg' },
-            { word: 'Hat', image: 'images/items/hat.svg' }
+            { word: 'Hat', image: 'images/items/hat.svg' },
+            { word: 'Apple', image: 'images/items/apple.svg' },
+            { word: 'Car', image: 'images/items/car.svg' },
+            { word: 'Star', image: 'images/items/star.svg' },
+            { word: 'Tree', image: 'images/items/tree.svg' },
+            { word: 'House', image: 'images/items/house.svg' }
         ]
     }
 ];
@@ -62,7 +80,7 @@ let gameState = {
     isAdmin: false
 };
 
-// Get custom sets from localStorage
+// Get custom sets from localStorage (includes edited built-in sets)
 function getCustomSets() {
     const stored = localStorage.getItem('wordMatchCustomSets');
     return stored ? JSON.parse(stored) : [];
@@ -73,36 +91,74 @@ function saveCustomSets(sets) {
     localStorage.setItem('wordMatchCustomSets', JSON.stringify(sets));
 }
 
-// Get all sets (default + custom)
+// Get all sets - custom sets override built-in sets with same ID
 function getAllSets() {
-    return [...defaultSets, ...getCustomSets()];
+    const customSets = getCustomSets();
+    const customIds = customSets.map(s => s.id);
+    
+    // Get built-in sets that haven't been customized
+    const unmodifiedBuiltIns = builtInSets.filter(s => !customIds.includes(s.id));
+    
+    // Return built-ins first, then custom (custom ones with built-in IDs will replace originals)
+    return [...unmodifiedBuiltIns, ...customSets];
 }
 
-// DOM Elements
-const menuScreen = document.getElementById('menuScreen');
-const gameScreen = document.getElementById('gameScreen');
-const completeScreen = document.getElementById('completeScreen');
-const setList = document.getElementById('setList');
-const gameGrid = document.getElementById('gameGrid');
-const scoreValue = document.getElementById('scoreValue');
-const currentSetName = document.getElementById('currentSetName');
-const progressFill = document.getElementById('progressFill');
-const progressText = document.getElementById('progressText');
-const finalScore = document.getElementById('finalScore');
-const celebration = document.getElementById('celebration');
-const loginModal = document.getElementById('loginModal');
-const adminPortal = document.getElementById('adminPortal');
-const editSetModal = document.getElementById('editSetModal');
+// Check if a set is a built-in set (original or edited version)
+function isBuiltInSet(setId) {
+    return builtInSets.some(s => s.id === setId);
+}
+
+// Get the original built-in set (for reset functionality)
+function getOriginalBuiltInSet(setId) {
+    return builtInSets.find(s => s.id === setId);
+}
+
+// DOM Elements - initialized in init()
+let menuScreen, gameScreen, completeScreen, setList, gameGrid;
+let scoreValue, currentSetName, progressFill, progressText;
+let finalScore, celebration, loginModal, adminPortal, editSetModal;
 
 // Initialize the app
 function init() {
-    renderSetList();
-    setupEventListeners();
+    console.log('Initializing Word Match Game...');
+    
+    // Get DOM elements
+    menuScreen = document.getElementById('menuScreen');
+    gameScreen = document.getElementById('gameScreen');
+    completeScreen = document.getElementById('completeScreen');
+    setList = document.getElementById('setList');
+    gameGrid = document.getElementById('gameGrid');
+    scoreValue = document.getElementById('scoreValue');
+    currentSetName = document.getElementById('currentSetName');
+    progressFill = document.getElementById('progressFill');
+    progressText = document.getElementById('progressText');
+    finalScore = document.getElementById('finalScore');
+    celebration = document.getElementById('celebration');
+    loginModal = document.getElementById('loginModal');
+    adminPortal = document.getElementById('adminPortal');
+    editSetModal = document.getElementById('editSetModal');
+    
+    console.log('DOM elements loaded, setList:', setList);
+    
+    try {
+        renderSetList();
+        setupEventListeners();
+        console.log('Initialization complete!');
+    } catch (e) {
+        console.error('Init error:', e);
+    }
 }
 
 // Render the set selection list
 function renderSetList() {
     const sets = getAllSets();
+    console.log('Rendering sets:', sets.length);
+    
+    if (!setList) {
+        console.error('setList element not found!');
+        return;
+    }
+    
     setList.innerHTML = sets.map(set => `
         <div class="set-card" data-set-id="${set.id}">
             <h3>${set.name}</h3>
@@ -116,6 +172,8 @@ function renderSetList() {
             startGame(card.dataset.setId);
         });
     });
+    
+    console.log('Set cards rendered:', document.querySelectorAll('.set-card').length);
 }
 
 // Setup event listeners
@@ -133,6 +191,8 @@ function setupEventListeners() {
     document.getElementById('cancelEditSet').addEventListener('click', hideEditSetModal);
     document.getElementById('saveSetBtn').addEventListener('click', saveSet);
     document.getElementById('addWordBtn').addEventListener('click', addWordRow);
+    document.getElementById('exportBtn').addEventListener('click', exportBackup);
+    document.getElementById('importFile').addEventListener('change', importBackup);
 
     // Enter key for login
     document.getElementById('passwordInput').addEventListener('keypress', (e) => {
@@ -157,7 +217,11 @@ function startGame(setId) {
     gameState.currentSet = set;
     gameState.score = 0;
     gameState.currentWordIndex = 0;
-    gameState.wordsToPlay = shuffleArray([...set.words]);
+    
+    // Shuffle all words and pick 9 (or less if set has fewer)
+    const shuffled = shuffleArray([...set.words]);
+    const numToPlay = Math.min(9, shuffled.length);
+    gameState.wordsToPlay = shuffled.slice(0, numToPlay);
     gameState.usedWords = [];
 
     currentSetName.textContent = set.name;
@@ -441,26 +505,32 @@ function showAdminPortal() {
 }
 
 function renderAdminSetList() {
-    const customSets = getCustomSets();
+    const allSets = getAllSets();
     const adminSetList = document.getElementById('adminSetList');
 
-    if (customSets.length === 0) {
-        adminSetList.innerHTML = '<p style="color: #888; text-align: center;">No custom sets yet. Add one!</p>';
+    if (allSets.length === 0) {
+        adminSetList.innerHTML = '<p style="color: #888; text-align: center;">No card sets available.</p>';
         return;
     }
 
-    adminSetList.innerHTML = customSets.map(set => `
+    adminSetList.innerHTML = allSets.map(set => {
+        const isBuiltIn = isBuiltInSet(set.id);
+        const isModified = isBuiltIn && getCustomSets().some(s => s.id === set.id);
+        const badge = isBuiltIn ? `<span style="font-size: 0.7rem; background: ${isModified ? '#FF9800' : '#4CAF50'}; color: white; padding: 2px 6px; border-radius: 8px; margin-left: 8px;">${isModified ? 'Modified' : 'Starter'}</span>` : '';
+        
+        return `
         <div class="set-item" data-set-id="${set.id}">
             <div class="set-item-info">
-                <h4>${set.name}</h4>
+                <h4>${set.name}${badge}</h4>
                 <span>${set.words.length} words</span>
             </div>
             <div class="set-item-actions">
                 <button class="btn-icon btn-edit" onclick="editSet('${set.id}')">✏️</button>
-                <button class="btn-icon btn-delete" onclick="deleteSet('${set.id}')">🗑️</button>
+                ${isBuiltIn && isModified ? `<button class="btn-icon" style="background: #FF9800; color: white;" onclick="resetSet('${set.id}')" title="Reset to original">↺</button>` : ''}
+                ${!isBuiltIn ? `<button class="btn-icon btn-delete" onclick="deleteSet('${set.id}')">🗑️</button>` : ''}
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 let editingSetId = null;
@@ -473,13 +543,13 @@ function showEditSetModal(setId = null) {
     const nameInput = document.getElementById('setNameInput');
 
     if (setId) {
-        // Editing existing set
-        const customSets = getCustomSets();
-        const set = customSets.find(s => s.id === setId);
+        // Editing existing set - find it from all sets
+        const allSets = getAllSets();
+        const set = allSets.find(s => s.id === setId);
         if (set) {
             title.textContent = 'Edit Card Set';
             nameInput.value = set.name;
-            editingWords = [...set.words];
+            editingWords = set.words.map(w => ({...w})); // Deep copy
         }
     } else {
         // New set
@@ -537,16 +607,155 @@ function handleImageUpload(index, input) {
     if (!file) return;
 
     // Check file size (max 100KB for GitHub hosting)
-    if (file.size > 100 * 1024) {
-        alert('Image too large! Please use images under 100KB for best performance.');
+    if (file.size > 500 * 1024) {
+        alert('Image too large! Please use images under 500KB.');
+        return;
     }
 
     const reader = new FileReader();
     reader.onload = (e) => {
-        editingWords[index].image = e.target.result;
-        renderWordList();
+        showCropModal(e.target.result, index);
     };
     reader.readAsDataURL(file);
+}
+
+// Crop modal state
+let cropState = {
+    imageIndex: null,
+    x: 0,
+    y: 0,
+    scale: 1,
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    imgWidth: 0,
+    imgHeight: 0
+};
+
+function showCropModal(imageSrc, index) {
+    cropState.imageIndex = index;
+    cropState.scale = 1;
+    cropState.x = 0;
+    cropState.y = 0;
+    
+    const modal = document.getElementById('cropModal');
+    const img = document.getElementById('cropImage');
+    const slider = document.getElementById('zoomSlider');
+    
+    slider.value = 1;
+    
+    img.onload = function() {
+        cropState.imgWidth = img.naturalWidth;
+        cropState.imgHeight = img.naturalHeight;
+        
+        // Fit image to container initially
+        const container = document.getElementById('cropContainer');
+        const containerSize = 280;
+        const minDim = Math.min(cropState.imgWidth, cropState.imgHeight);
+        cropState.scale = containerSize / minDim;
+        
+        // Center the image
+        cropState.x = (containerSize - cropState.imgWidth * cropState.scale) / 2;
+        cropState.y = (containerSize - cropState.imgHeight * cropState.scale) / 2;
+        
+        updateCropImage();
+        slider.value = 1;
+    };
+    
+    img.src = imageSrc;
+    modal.classList.add('active');
+    
+    setupCropEvents();
+}
+
+function updateCropImage() {
+    const img = document.getElementById('cropImage');
+    img.style.transform = `translate(${cropState.x}px, ${cropState.y}px) scale(${cropState.scale})`;
+}
+
+function setupCropEvents() {
+    const container = document.getElementById('cropContainer');
+    const img = document.getElementById('cropImage');
+    const slider = document.getElementById('zoomSlider');
+    
+    const handleStart = (e) => {
+        e.preventDefault();
+        cropState.isDragging = true;
+        const point = e.touches ? e.touches[0] : e;
+        cropState.startX = point.clientX - cropState.x;
+        cropState.startY = point.clientY - cropState.y;
+    };
+    
+    const handleMove = (e) => {
+        if (!cropState.isDragging) return;
+        e.preventDefault();
+        const point = e.touches ? e.touches[0] : e;
+        cropState.x = point.clientX - cropState.startX;
+        cropState.y = point.clientY - cropState.startY;
+        updateCropImage();
+    };
+    
+    const handleEnd = () => {
+        cropState.isDragging = false;
+    };
+    
+    // Remove old listeners
+    container.replaceWith(container.cloneNode(true));
+    const newContainer = document.getElementById('cropContainer');
+    const newImg = document.getElementById('cropImage');
+    newImg.src = img.src;
+    
+    newContainer.addEventListener('mousedown', handleStart);
+    newContainer.addEventListener('touchstart', handleStart, { passive: false });
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('touchmove', handleMove, { passive: false });
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchend', handleEnd);
+    
+    // Zoom slider
+    slider.oninput = function() {
+        const containerSize = 280;
+        const minDim = Math.min(cropState.imgWidth, cropState.imgHeight);
+        const baseScale = containerSize / minDim;
+        cropState.scale = baseScale * parseFloat(this.value);
+        updateCropImage();
+    };
+    
+    // Cancel button
+    document.getElementById('cancelCrop').onclick = () => {
+        document.getElementById('cropModal').classList.remove('active');
+    };
+    
+    // Apply button
+    document.getElementById('applyCrop').onclick = applyCrop;
+}
+
+function applyCrop() {
+    const img = document.getElementById('cropImage');
+    const containerSize = 280;
+    const outputSize = 200; // Output image size
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = outputSize;
+    canvas.height = outputSize;
+    const ctx = canvas.getContext('2d');
+    
+    // Calculate what portion of the image is visible
+    const sourceX = -cropState.x / cropState.scale;
+    const sourceY = -cropState.y / cropState.scale;
+    const sourceSize = containerSize / cropState.scale;
+    
+    ctx.drawImage(
+        img,
+        sourceX, sourceY, sourceSize, sourceSize,
+        0, 0, outputSize, outputSize
+    );
+    
+    const croppedImage = canvas.toDataURL('image/jpeg', 0.85);
+    editingWords[cropState.imageIndex].image = croppedImage;
+    
+    document.getElementById('cropModal').classList.remove('active');
+    renderWordList();
 }
 
 function saveSet() {
@@ -571,8 +780,18 @@ function saveSet() {
         // Update existing set
         const index = customSets.findIndex(s => s.id === editingSetId);
         if (index !== -1) {
+            // Updating an already-customized set
             customSets[index].name = name;
             customSets[index].words = validWords;
+        } else {
+            // Editing a built-in set for the first time - add to custom sets
+            const newCustomSet = {
+                id: editingSetId,
+                name: name,
+                words: validWords,
+                isBuiltIn: isBuiltInSet(editingSetId)
+            };
+            customSets.push(newCustomSet);
         }
     } else {
         // Create new set
@@ -603,9 +822,97 @@ window.deleteSet = function(setId) {
     }
 };
 
+window.resetSet = function(setId) {
+    const originalSet = getOriginalBuiltInSet(setId);
+    if (originalSet && confirm(`Reset "${originalSet.name}" back to the original ${originalSet.words.length} words?`)) {
+        const customSets = getCustomSets();
+        const filtered = customSets.filter(s => s.id !== setId);
+        saveCustomSets(filtered);
+        renderAdminSetList();
+    }
+};
+
 window.updateWord = updateWord;
 window.handleImageUpload = handleImageUpload;
 window.removeWord = removeWord;
+
+// Export backup - downloads custom sets as JSON file
+function exportBackup() {
+    const customSets = getCustomSets();
+    
+    if (customSets.length === 0) {
+        alert('No custom card sets to export!');
+        return;
+    }
+    
+    const backup = {
+        version: 1,
+        exportDate: new Date().toISOString(),
+        sets: customSets
+    };
+    
+    const dataStr = JSON.stringify(backup, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `word-match-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    alert('Backup downloaded! Keep this file safe.');
+}
+
+// Import backup - restores custom sets from JSON file
+function importBackup(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const backup = JSON.parse(e.target.result);
+            
+            // Validate backup structure
+            if (!backup.sets || !Array.isArray(backup.sets)) {
+                throw new Error('Invalid backup file format');
+            }
+            
+            const existingSets = getCustomSets();
+            const existingIds = existingSets.map(s => s.id);
+            
+            // Check for duplicates
+            const newSets = backup.sets.filter(s => !existingIds.includes(s.id));
+            const duplicates = backup.sets.length - newSets.length;
+            
+            if (newSets.length === 0) {
+                alert('All sets in this backup already exist!');
+                return;
+            }
+            
+            let message = `Import ${newSets.length} card set(s)?`;
+            if (duplicates > 0) {
+                message += `\n(${duplicates} duplicate(s) will be skipped)`;
+            }
+            
+            if (confirm(message)) {
+                const merged = [...existingSets, ...newSets];
+                saveCustomSets(merged);
+                renderAdminSetList();
+                alert(`Successfully imported ${newSets.length} card set(s)!`);
+            }
+        } catch (err) {
+            alert('Error reading backup file: ' + err.message);
+        }
+    };
+    reader.readAsText(file);
+    
+    // Reset file input so same file can be selected again
+    event.target.value = '';
+}
 
 // Initialize on load
 document.addEventListener('DOMContentLoaded', init);

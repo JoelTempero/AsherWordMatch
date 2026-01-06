@@ -231,8 +231,8 @@
         }
 
         .grid-cell.center-cell {
-            background: linear-gradient(135deg, #FFF9C4, #FFECB3);
-            border: 4px dashed var(--warning);
+            background: linear-gradient(135deg, #F5F5F5, #E0E0E0);
+            border: 4px dashed #BDBDBD;
         }
 
         .grid-cell.drop-target {
@@ -707,6 +707,63 @@
             color: var(--secondary);
             margin-bottom: 30px;
         }
+
+        /* Crop Modal */
+        .crop-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 0 auto 15px;
+            overflow: hidden;
+            border-radius: 15px;
+            background: #333;
+            touch-action: none;
+        }
+
+        #cropImage {
+            position: absolute;
+            cursor: move;
+            max-width: none;
+            transform-origin: 0 0;
+        }
+
+        .crop-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 3px solid var(--primary);
+            border-radius: 15px;
+            pointer-events: none;
+            box-shadow: 0 0 0 1000px rgba(0,0,0,0.5);
+        }
+
+        .zoom-control {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .zoom-control input[type="range"] {
+            width: 150px;
+            height: 8px;
+            border-radius: 4px;
+            background: #E0E0E0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .zoom-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--secondary);
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -824,6 +881,27 @@
             <div class="modal-buttons">
                 <button class="btn btn-secondary" id="cancelEditSet">Cancel</button>
                 <button class="btn btn-primary" id="saveSetBtn">Save Set</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Crop Modal -->
+    <div class="modal-overlay" id="cropModal">
+        <div class="modal" style="max-width: 400px;">
+            <h2>Crop Image</h2>
+            <p style="color: #666; font-size: 0.85rem; margin-bottom: 15px;">Drag to position, scroll/pinch to zoom</p>
+            <div class="crop-container" id="cropContainer">
+                <img id="cropImage" src="" alt="Crop preview">
+                <div class="crop-overlay"></div>
+            </div>
+            <div class="zoom-control">
+                <span>🔍</span>
+                <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1">
+                <span>🔍+</span>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="cancelCrop">Cancel</button>
+                <button class="btn btn-primary" id="applyCrop">Use This</button>
             </div>
         </div>
     </div>
