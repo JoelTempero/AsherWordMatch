@@ -1,6 +1,24 @@
 // Word Match Game - Main Application
 
-// Default card sets (built-in starter packs - can be overridden in localStorage)
+// Firebase Configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyBrCFsYhxXDnLegqWC96yEJDf6bfWmxqlI",
+    authDomain: "word-match-game-3c60d.firebaseapp.com",
+    projectId: "word-match-game-3c60d",
+    storageBucket: "word-match-game-3c60d.firebasestorage.app",
+    messagingSenderId: "92490958010",
+    appId: "1:92490958010:web:63270d510ae3fbb81d2e83"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// Cache for custom sets (loaded from Firebase)
+let customSetsCache = [];
+let isDataLoaded = false;
+
+// Default card sets (built-in starter packs - can be overridden in Firebase)
 const builtInSets = [
     {
         id: 'colors',
@@ -80,25 +98,67 @@ let gameState = {
     isAdmin: false
 };
 
-// Get custom sets from localStorage (includes edited built-in sets)
+// Get custom sets from cache (loaded from Firebase)
 function getCustomSets() {
-    const stored = localStorage.getItem('wordMatchCustomSets');
-    return stored ? JSON.parse(stored) : [];
+    return customSetsCache;
 }
 
-// Save custom sets to localStorage with error handling
-function saveCustomSets(sets) {
+// Load custom sets from Firebase
+async function loadCustomSetsFromFirebase() {
     try {
-        localStorage.setItem('wordMatchCustomSets', JSON.stringify(sets));
+        const snapshot = await db.collection('cardSets').get();
+        customSetsCache = [];
+        snapshot.forEach(doc => {
+            customSetsCache.push({ id: doc.id, ...doc.data() });
+        });
+        isDataLoaded = true;
+        console.log('Loaded', customSetsCache.length, 'custom sets from Firebase');
+        return customSetsCache;
+    } catch (e) {
+        console.error('Error loading from Firebase:', e);
+        // Fallback to localStorage if offline
+        const stored = localStorage.getItem('wordMatchCustomSets');
+        customSetsCache = stored ? JSON.parse(stored) : [];
+        isDataLoaded = true;
+        return customSetsCache;
+    }
+}
+
+// Save a single set to Firebase
+async function saveSetToFirebase(set) {
+    try {
+        await db.collection('cardSets').doc(set.id).set(set);
+        // Also cache locally for offline use
+        localStorage.setItem('wordMatchCustomSets', JSON.stringify(customSetsCache));
         return true;
     } catch (e) {
-        if (e.name === 'QuotaExceededError' || e.code === 22) {
-            alert('Storage is full! Try removing some card sets or images to free up space.');
-        } else {
-            alert('Error saving: ' + e.message);
-        }
+        console.error('Error saving to Firebase:', e);
+        alert('Error saving: ' + e.message + '\nChanges saved locally only.');
+        localStorage.setItem('wordMatchCustomSets', JSON.stringify(customSetsCache));
         return false;
     }
+}
+
+// Delete a set from Firebase
+async function deleteSetFromFirebase(setId) {
+    try {
+        await db.collection('cardSets').doc(setId).delete();
+        // Also update local cache
+        localStorage.setItem('wordMatchCustomSets', JSON.stringify(customSetsCache));
+        return true;
+    } catch (e) {
+        console.error('Error deleting from Firebase:', e);
+        alert('Error deleting: ' + e.message);
+        return false;
+    }
+}
+
+// Save custom sets (updates cache and Firebase)
+async function saveCustomSets(sets) {
+    customSetsCache = sets;
+    // Save all sets to local storage as backup
+    localStorage.setItem('wordMatchCustomSets', JSON.stringify(sets));
+    return true;
 }
 
 // Get all sets - custom sets override built-in sets with same ID
@@ -129,7 +189,7 @@ let scoreValue, currentSetName, progressFill, progressText;
 let finalScore, celebration, loginModal, adminPortal, editSetModal;
 
 // Initialize the app
-function init() {
+async function init() {
     console.log('Initializing Word Match Game...');
     
     // Get DOM elements
@@ -151,11 +211,22 @@ function init() {
     console.log('DOM elements loaded, setList:', setList);
     
     try {
+        // Show loading state
+        if (setList) {
+            setList.innerHTML = '<p style="text-align: center; color: #888;">Loading card sets...</p>';
+        }
+        
+        // Load data from Firebase
+        await loadCustomSetsFromFirebase();
+        
         renderSetList();
         setupEventListeners();
         console.log('Initialization complete!');
     } catch (e) {
         console.error('Init error:', e);
+        // Still render with built-in sets if Firebase fails
+        renderSetList();
+        setupEventListeners();
     }
 }
 
@@ -211,10 +282,13 @@ function setupEventListeners() {
 }
 
 // Show menu screen
-function showMenu() {
+async function showMenu() {
     menuScreen.classList.add('active');
     completeScreen.classList.remove('active');
     gameScreen.style.display = 'none';
+    
+    // Refresh data from Firebase when returning to menu
+    await loadCustomSetsFromFirebase();
     renderSetList();
 }
 
@@ -805,7 +879,7 @@ function applyCrop() {
     renderWordList();
 }
 
-function saveSet() {
+async function saveSet() {
     const name = document.getElementById('setNameInput').value.trim();
     
     if (!name) {
@@ -821,36 +895,36 @@ function saveSet() {
         return;
     }
 
-    const customSets = getCustomSets();
-
+    let setToSave;
+    
     if (editingSetId) {
         // Update existing set
-        const index = customSets.findIndex(s => s.id === editingSetId);
+        const index = customSetsCache.findIndex(s => s.id === editingSetId);
+        setToSave = {
+            id: editingSetId,
+            name: name,
+            words: validWords,
+            isBuiltIn: isBuiltInSet(editingSetId)
+        };
+        
         if (index !== -1) {
-            // Updating an already-customized set
-            customSets[index].name = name;
-            customSets[index].words = validWords;
+            customSetsCache[index] = setToSave;
         } else {
-            // Editing a built-in set for the first time - add to custom sets
-            const newCustomSet = {
-                id: editingSetId,
-                name: name,
-                words: validWords,
-                isBuiltIn: isBuiltInSet(editingSetId)
-            };
-            customSets.push(newCustomSet);
+            customSetsCache.push(setToSave);
         }
     } else {
         // Create new set
-        const newSet = {
+        setToSave = {
             id: 'custom_' + Date.now(),
             name: name,
             words: validWords
         };
-        customSets.push(newSet);
+        customSetsCache.push(setToSave);
     }
 
-    saveCustomSets(customSets);
+    // Save to Firebase
+    await saveSetToFirebase(setToSave);
+    
     hideEditSetModal();
     renderAdminSetList();
 }
@@ -860,21 +934,19 @@ window.editSet = function(setId) {
     showEditSetModal(setId);
 };
 
-window.deleteSet = function(setId) {
+window.deleteSet = async function(setId) {
     if (confirm('Are you sure you want to delete this set?')) {
-        const customSets = getCustomSets();
-        const filtered = customSets.filter(s => s.id !== setId);
-        saveCustomSets(filtered);
+        customSetsCache = customSetsCache.filter(s => s.id !== setId);
+        await deleteSetFromFirebase(setId);
         renderAdminSetList();
     }
 };
 
-window.resetSet = function(setId) {
+window.resetSet = async function(setId) {
     const originalSet = getOriginalBuiltInSet(setId);
     if (originalSet && confirm(`Reset "${originalSet.name}" back to the original ${originalSet.words.length} words?`)) {
-        const customSets = getCustomSets();
-        const filtered = customSets.filter(s => s.id !== setId);
-        saveCustomSets(filtered);
+        customSetsCache = customSetsCache.filter(s => s.id !== setId);
+        await deleteSetFromFirebase(setId);
         renderAdminSetList();
     }
 };
