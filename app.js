@@ -186,7 +186,7 @@ function getOriginalBuiltInSet(setId) {
 // DOM Elements - initialized in init()
 let menuScreen, gameScreen, completeScreen, setList, gameGrid;
 let scoreValue, currentSetName, progressFill, progressText;
-let finalScore, celebration, loginModal, adminPortal, editSetModal;
+let finalScore, loginModal, adminPortal, editSetModal;
 
 // Initialize the app
 async function init() {
@@ -203,7 +203,6 @@ async function init() {
     progressFill = document.getElementById('progressFill');
     progressText = document.getElementById('progressText');
     finalScore = document.getElementById('finalScore');
-    celebration = document.getElementById('celebration');
     loginModal = document.getElementById('loginModal');
     adminPortal = document.getElementById('adminPortal');
     editSetModal = document.getElementById('editSetModal');
@@ -264,6 +263,7 @@ function setupEventListeners() {
     document.getElementById('playAgainBtn').addEventListener('click', () => {
         startGame(gameState.currentSet.id);
     });
+    document.getElementById('refreshBtn').addEventListener('click', refreshData);
     document.getElementById('loginBtn').addEventListener('click', showLoginModal);
     document.getElementById('cancelLogin').addEventListener('click', hideLoginModal);
     document.getElementById('submitLogin').addEventListener('click', attemptLogin);
@@ -279,6 +279,20 @@ function setupEventListeners() {
     document.getElementById('passwordInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') attemptLogin();
     });
+}
+
+// Refresh data from Firebase
+async function refreshData() {
+    const btn = document.getElementById('refreshBtn');
+    btn.style.transform = 'rotate(360deg)';
+    btn.style.transition = 'transform 0.5s';
+    
+    await loadCustomSetsFromFirebase();
+    renderSetList();
+    
+    setTimeout(() => {
+        btn.style.transform = '';
+    }, 500);
 }
 
 // Show menu screen
@@ -482,22 +496,19 @@ function handleDrop(cell, isCorrect) {
         cell.classList.add('correct');
         gameState.score += 1;
         scoreValue.textContent = gameState.score;
-        
-        // Play success sound effect (visual only for now)
-        createConfetti();
 
         setTimeout(() => {
             gameState.currentWordIndex++;
             updateProgress();
             nextRound();
-        }, 800);
+        }, 600);
     } else {
         // Wrong answer
         cell.classList.add('wrong');
         
         setTimeout(() => {
             cell.classList.remove('wrong');
-        }, 500);
+        }, 400);
     }
 }
 
@@ -516,29 +527,6 @@ function showComplete() {
     gameScreen.style.display = 'none';
     completeScreen.classList.add('active');
     finalScore.textContent = `You got ${gameState.score} stars!`;
-    
-    // Big celebration
-    for (let i = 0; i < 50; i++) {
-        setTimeout(() => createConfetti(), i * 50);
-    }
-}
-
-// Create confetti effect
-function createConfetti() {
-    const colors = ['#FF6B9D', '#7C4DFF', '#00E676', '#FFD54F', '#FF8A80', '#B388FF'];
-    
-    for (let i = 0; i < 10; i++) {
-        const confetti = document.createElement('div');
-        confetti.className = 'confetti';
-        confetti.style.left = Math.random() * 100 + '%';
-        confetti.style.top = '-10px';
-        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
-        confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
-        confetti.style.animationDuration = (2 + Math.random() * 2) + 's';
-        celebration.appendChild(confetti);
-
-        setTimeout(() => confetti.remove(), 3000);
-    }
 }
 
 // Shuffle array helper
