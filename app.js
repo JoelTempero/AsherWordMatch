@@ -86,9 +86,19 @@ function getCustomSets() {
     return stored ? JSON.parse(stored) : [];
 }
 
-// Save custom sets to localStorage
+// Save custom sets to localStorage with error handling
 function saveCustomSets(sets) {
-    localStorage.setItem('wordMatchCustomSets', JSON.stringify(sets));
+    try {
+        localStorage.setItem('wordMatchCustomSets', JSON.stringify(sets));
+        return true;
+    } catch (e) {
+        if (e.name === 'QuotaExceededError' || e.code === 22) {
+            alert('Storage is full! Try removing some card sets or images to free up space.');
+        } else {
+            alert('Error saving: ' + e.message);
+        }
+        return false;
+    }
 }
 
 // Get all sets - custom sets override built-in sets with same ID
@@ -606,17 +616,53 @@ function handleImageUpload(index, input) {
     const file = input.files[0];
     if (!file) return;
 
-    // Check file size (max 100KB for GitHub hosting)
-    if (file.size > 500 * 1024) {
-        alert('Image too large! Please use images under 500KB.');
-        return;
-    }
-
+    // Accept any image - we'll compress it during crop
     const reader = new FileReader();
     reader.onload = (e) => {
-        showCropModal(e.target.result, index);
+        // First resize large images before showing crop modal
+        compressImageForCrop(e.target.result, (compressedSrc) => {
+            showCropModal(compressedSrc, index);
+        });
     };
     reader.readAsDataURL(file);
+}
+
+// Compress image before cropping if it's too large
+function compressImageForCrop(src, callback) {
+    const img = new Image();
+    img.onload = function() {
+        // If image is reasonably sized, use as-is
+        if (img.width <= 1200 && img.height <= 1200) {
+            callback(src);
+            return;
+        }
+        
+        // Resize large images for the crop preview
+        const canvas = document.createElement('canvas');
+        const maxSize = 1200;
+        let width = img.width;
+        let height = img.height;
+        
+        if (width > height) {
+            if (width > maxSize) {
+                height = (height * maxSize) / width;
+                width = maxSize;
+            }
+        } else {
+            if (height > maxSize) {
+                width = (width * maxSize) / height;
+                height = maxSize;
+            }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        callback(canvas.toDataURL('image/jpeg', 0.85));
+    };
+    img.src = src;
 }
 
 // Crop modal state
@@ -733,7 +779,7 @@ function setupCropEvents() {
 function applyCrop() {
     const img = document.getElementById('cropImage');
     const containerSize = 280;
-    const outputSize = 200; // Output image size
+    const outputSize = 150; // Smaller output for better storage (150x150 is plenty for game)
     
     const canvas = document.createElement('canvas');
     canvas.width = outputSize;
@@ -751,7 +797,8 @@ function applyCrop() {
         0, 0, outputSize, outputSize
     );
     
-    const croppedImage = canvas.toDataURL('image/jpeg', 0.85);
+    // Compress to JPEG at 75% quality - keeps file size small
+    const croppedImage = canvas.toDataURL('image/jpeg', 0.75);
     editingWords[cropState.imageIndex].image = croppedImage;
     
     document.getElementById('cropModal').classList.remove('active');
