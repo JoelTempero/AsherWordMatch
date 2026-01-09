@@ -21,69 +21,106 @@ let isDataLoaded = false;
 // Default card sets (built-in starter packs - can be overridden in Firebase)
 const builtInSets = [
     {
-        id: 'colors',
-        name: 'Colors',
+        id: 'all_words',
+        name: 'All Words',
         isBuiltIn: true,
         words: [
-            { word: 'Red', image: 'images/colors/red.svg' },
-            { word: 'Blue', image: 'images/colors/blue.svg' },
-            { word: 'Green', image: 'images/colors/green.svg' },
-            { word: 'Yellow', image: 'images/colors/yellow.svg' },
-            { word: 'Orange', image: 'images/colors/orange.svg' },
-            { word: 'Purple', image: 'images/colors/purple.svg' },
-            { word: 'Pink', image: 'images/colors/pink.svg' },
-            { word: 'Brown', image: 'images/colors/brown.svg' },
-            { word: 'Black', image: 'images/colors/black.svg' },
-            { word: 'White', image: 'images/colors/white.svg' },
-            { word: 'Grey', image: 'images/colors/grey.svg' },
-            { word: 'Gold', image: 'images/colors/gold.svg' },
-            { word: 'Silver', image: 'images/colors/silver.svg' },
-            { word: 'Cyan', image: 'images/colors/cyan.svg' },
-            { word: 'Lime', image: 'images/colors/lime.svg' }
-        ]
-    },
-    {
-        id: 'animals',
-        name: 'Animals',
-        isBuiltIn: true,
-        words: [
-            { word: 'Cat', image: 'images/animals/cat.svg' },
-            { word: 'Dog', image: 'images/animals/dog.svg' },
-            { word: 'Bird', image: 'images/animals/bird.svg' },
-            { word: 'Fish', image: 'images/animals/fish.svg' },
-            { word: 'Rabbit', image: 'images/animals/rabbit.svg' },
-            { word: 'Horse', image: 'images/animals/horse.svg' },
-            { word: 'Cow', image: 'images/animals/cow.svg' },
-            { word: 'Pig', image: 'images/animals/pig.svg' },
-            { word: 'Duck', image: 'images/animals/duck.svg' },
-            { word: 'Sheep', image: 'images/animals/sheep.svg' },
-            { word: 'Frog', image: 'images/animals/frog.svg' },
-            { word: 'Bee', image: 'images/animals/bee.svg' },
-            { word: 'Lion', image: 'images/animals/lion.svg' },
-            { word: 'Mouse', image: 'images/animals/mouse.svg' },
-            { word: 'Snake', image: 'images/animals/snake.svg' }
-        ]
-    },
-    {
-        id: 'items',
-        name: 'Simple Items',
-        isBuiltIn: true,
-        words: [
-            { word: 'Ball', image: 'images/items/ball.svg' },
-            { word: 'Book', image: 'images/items/book.svg' },
-            { word: 'Cup', image: 'images/items/cup.svg' },
-            { word: 'Chair', image: 'images/items/chair.svg' },
-            { word: 'Table', image: 'images/items/table.svg' },
-            { word: 'Bed', image: 'images/items/bed.svg' },
-            { word: 'Phone', image: 'images/items/phone.svg' },
-            { word: 'Clock', image: 'images/items/clock.svg' },
-            { word: 'Key', image: 'images/items/key.svg' },
-            { word: 'Hat', image: 'images/items/hat.svg' },
-            { word: 'Apple', image: 'images/items/apple.svg' },
-            { word: 'Car', image: 'images/items/car.svg' },
-            { word: 'Star', image: 'images/items/star.svg' },
-            { word: 'Tree', image: 'images/items/tree.svg' },
-            { word: 'House', image: 'images/items/house.svg' }
+            { word: 'ball', image: 'images/words/ball.png' },
+            { word: 'book', image: 'images/words/book.png' },
+            { word: 'dolly', image: 'images/words/dolly.png' },
+            { word: 'car', image: 'images/words/car.png' },
+            { word: 'bird', image: 'images/words/bird.png' },
+            { word: 'dog', image: 'images/words/dog.png' },
+            { word: 'cat', image: 'images/words/cat.png' },
+            { word: 'fish', image: 'images/words/fish.png' },
+            { word: 'flower', image: 'images/words/flower.png' },
+            { word: 'keys', image: 'images/words/keys.png' },
+            { word: 'cup', image: 'images/words/cup.png' },
+            { word: 'brush', image: 'images/words/brush.png' },
+            { word: 'coat', image: 'images/words/coat.png' },
+            { word: 'shoes', image: 'images/words/shoes.png' },
+            { word: 'hat', image: 'images/words/hat.png' },
+            { word: 'socks', image: 'images/words/socks.png' },
+            { word: 'duck', image: 'images/words/duck.png' },
+            { word: 'pig', image: 'images/words/pig.png' },
+            { word: 'sheep', image: 'images/words/sheep.png' },
+            { word: 'cow', image: 'images/words/cow.png' },
+            { word: 'apple', image: 'images/words/apple.png' },
+            { word: 'banana', image: 'images/words/banana.png' },
+            { word: 'biscuit', image: 'images/words/biscuit.png' },
+            { word: 'drink', image: 'images/words/drink.png' },
+            { word: 'bed', image: 'images/words/bed.png' },
+            { word: 'chair', image: 'images/words/chair.png' },
+            { word: 'table', image: 'images/words/table.png' },
+            { word: 'bath', image: 'images/words/bath.png' },
+            { word: 'eyes', image: 'images/words/eyes.png' },
+            { word: 'mouth', image: 'images/words/mouth.png' },
+            { word: 'hair', image: 'images/words/hair.png' },
+            { word: 'nose', image: 'images/words/nose.png' },
+            { word: 'spoon', image: 'images/words/spoon.png' },
+            { word: 'bag', image: 'images/words/bag.png' },
+            { word: 'phone', image: 'images/words/phone.png' },
+            { word: 'bricks', image: 'images/words/bricks.png' },
+            { word: 'eating', image: 'images/words/eating.png' },
+            { word: 'sleeping', image: 'images/words/sleeping.png' },
+            { word: 'drinking', image: 'images/words/drinking.png' },
+            { word: 'brushing', image: 'images/words/brushing.png' },
+            { word: 'sitting', image: 'images/words/sitting.png' },
+            { word: 'washing', image: 'images/words/washing.png' },
+            { word: 'walking', image: 'images/words/walking.png' },
+            { word: 'crying', image: 'images/words/crying.png' },
+            { word: 'television', image: 'images/words/television.png' },
+            { word: 'light', image: 'images/words/light.png' },
+            { word: 'balloon', image: 'images/words/balloon.png' },
+            { word: 'box', image: 'images/words/box.png' },
+            { word: 'bubbles', image: 'images/words/bubbles.png' },
+            { word: 'big', image: 'images/words/big.png' },
+            { word: 'splashing', image: 'images/words/splashing.png' },
+            { word: 'little', image: 'images/words/little.png' },
+            { word: 'garden', image: 'images/words/garden.png' },
+            { word: 'star', image: 'images/words/star.png' },
+            { word: 'house', image: 'images/words/house.png' },
+            { word: 'tree', image: 'images/words/tree.png' },
+            { word: 'jumping', image: 'images/words/jumping.png' },
+            { word: 'playing', image: 'images/words/playing.png' },
+            { word: 'running', image: 'images/words/running.png' },
+            { word: 'kissing', image: 'images/words/kissing.png' },
+            { word: 'clapping', image: 'images/words/clapping.png' },
+            { word: 'reading', image: 'images/words/reading.png' },
+            { word: 'cutting', image: 'images/words/cutting.png' },
+            { word: 'throwing', image: 'images/words/throwing.png' },
+            { word: 'towel', image: 'images/words/towel.png' },
+            { word: 'soap', image: 'images/words/soap.png' },
+            { word: 'toothbrush', image: 'images/words/toothbrush.png' },
+            { word: 'teeth', image: 'images/words/teeth.png' },
+            { word: 'bread', image: 'images/words/bread.png' },
+            { word: 'dinner', image: 'images/words/dinner.png' },
+            { word: 'juice', image: 'images/words/juice.png' },
+            { word: 'yoghurt', image: 'images/words/yoghurt.png' },
+            { word: 'chicken', image: 'images/words/chicken.png' },
+            { word: 'monkey', image: 'images/words/monkey.png' },
+            { word: 'rabbit', image: 'images/words/rabbit.png' },
+            { word: 'horse', image: 'images/words/horse.png' },
+            { word: 'dress', image: 'images/words/dress.png' },
+            { word: 'jumper', image: 'images/words/jumper.png' },
+            { word: 'boots', image: 'images/words/boots.png' },
+            { word: 'trousers', image: 'images/words/trousers.png' },
+            { word: 'foot', image: 'images/words/foot.png' },
+            { word: 'tummy', image: 'images/words/tummy.png' },
+            { word: 'hand', image: 'images/words/hand.png' },
+            { word: 'ear', image: 'images/words/ear.png' },
+            { word: 'up', image: 'images/words/up.png' },
+            { word: 'down', image: 'images/words/down.png' },
+            { word: 'swing', image: 'images/words/swing.png' },
+            { word: 'bike', image: 'images/words/bike.png' },
+            { word: 'boat', image: 'images/words/boat.png' },
+            { word: 'bus', image: 'images/words/bus.png' },
+            { word: 'aeroplane', image: 'images/words/aeroplane.png' },
+            { word: 'train', image: 'images/words/train.png' },
+            { word: 'wet', image: 'images/words/wet.png' },
+            { word: 'dirty', image: 'images/words/dirty.png' },
+            { word: 'hot', image: 'images/words/hot.png' },
+            { word: 'cold', image: 'images/words/cold.png' }
         ]
     }
 ];
@@ -95,8 +132,14 @@ let gameState = {
     score: 0,
     wordsToPlay: [],
     usedWords: [],
-    isAdmin: false
+    isAdmin: false,
+    gameMode: 'pic-word', // 'match-pic', 'pic-word', 'match-word', 'word-pic'
+    modesUnlocked: false
 };
+
+// Lock button state
+let lockHoldTimer = null;
+let lockHoldStart = 0;
 
 // Get custom sets from cache (loaded from Firebase)
 function getCustomSets() {
@@ -275,10 +318,89 @@ function setupEventListeners() {
     document.getElementById('exportBtn').addEventListener('click', exportBackup);
     document.getElementById('importFile').addEventListener('change', importBackup);
 
+    // Lock button - hold for 3 seconds to unlock modes
+    const lockBtn = document.getElementById('lockBtn');
+    lockBtn.addEventListener('touchstart', startLockHold, { passive: false });
+    lockBtn.addEventListener('mousedown', startLockHold);
+    lockBtn.addEventListener('touchend', endLockHold);
+    lockBtn.addEventListener('mouseup', endLockHold);
+    lockBtn.addEventListener('mouseleave', endLockHold);
+
+    // Mode toggle buttons
+    document.getElementById('modeMatchPic').addEventListener('click', () => setGameMode('match-pic'));
+    document.getElementById('modePicWord').addEventListener('click', () => setGameMode('pic-word'));
+    document.getElementById('modeMatchWord').addEventListener('click', () => setGameMode('match-word'));
+    document.getElementById('modeWordPic').addEventListener('click', () => setGameMode('word-pic'));
+
     // Enter key for login
     document.getElementById('passwordInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') attemptLogin();
     });
+}
+
+// Lock button hold functions
+function startLockHold(e) {
+    e.preventDefault();
+    lockHoldStart = Date.now();
+    const lockBtn = document.getElementById('lockBtn');
+    lockBtn.classList.add('unlocking');
+    
+    lockHoldTimer = setTimeout(() => {
+        // 3 seconds held - unlock modes
+        gameState.modesUnlocked = true;
+        lockBtn.classList.remove('unlocking');
+        lockBtn.classList.add('unlocked');
+        lockBtn.textContent = '🔓';
+        document.getElementById('modeToggle').classList.add('visible');
+        
+        // Auto-lock after 10 seconds of inactivity
+        setTimeout(() => {
+            lockModes();
+        }, 10000);
+    }, 3000);
+}
+
+function endLockHold() {
+    if (lockHoldTimer) {
+        clearTimeout(lockHoldTimer);
+        lockHoldTimer = null;
+    }
+    const lockBtn = document.getElementById('lockBtn');
+    lockBtn.classList.remove('unlocking');
+    
+    // If already unlocked, clicking locks it again
+    if (gameState.modesUnlocked) {
+        lockModes();
+    }
+}
+
+function lockModes() {
+    gameState.modesUnlocked = false;
+    const lockBtn = document.getElementById('lockBtn');
+    lockBtn.classList.remove('unlocked');
+    lockBtn.textContent = '🔒';
+    document.getElementById('modeToggle').classList.remove('visible');
+}
+
+// Set game mode
+function setGameMode(mode) {
+    gameState.gameMode = mode;
+    
+    // Update button states
+    document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
+    
+    const modeMap = {
+        'match-pic': 'modeMatchPic',
+        'pic-word': 'modePicWord',
+        'match-word': 'modeMatchWord',
+        'word-pic': 'modeWordPic'
+    };
+    document.getElementById(modeMap[mode]).classList.add('active');
+    
+    // Re-render current round with new mode
+    if (gameState.currentSet) {
+        renderCurrentRound();
+    }
 }
 
 // Refresh data from Firebase
@@ -339,7 +461,13 @@ function nextRound() {
         return;
     }
 
+    renderCurrentRound();
+}
+
+// Render current round based on game mode
+function renderCurrentRound() {
     const currentWord = gameState.wordsToPlay[gameState.currentWordIndex];
+    const mode = gameState.gameMode;
     
     // Get 8 other words for the grid (excluding current)
     const otherWords = gameState.wordsToPlay
@@ -359,28 +487,60 @@ function nextRound() {
     shuffleArray(positions);
     shuffleArray(otherWords);
 
-    // Build grid HTML
+    // Build grid HTML based on mode
     let gridHTML = '';
     let wordIndex = 0;
     
+    // Determine what to show in center and surrounding cells based on mode:
+    // match-pic: center=picture, surround=pictures (match picture to picture)
+    // pic-word: center=picture, surround=words (match picture to word)
+    // match-word: center=word, surround=words (match word to word)
+    // word-pic: center=word, surround=pictures (match word to picture)
+    
+    const centerIsPicture = (mode === 'match-pic' || mode === 'pic-word');
+    const surroundIsPicture = (mode === 'match-pic' || mode === 'word-pic');
+    const showWordReveal = surroundIsPicture; // Show word after correct match when surrounding is pictures
+    
     for (let i = 0; i < 9; i++) {
         if (i === 4) {
-            // Center cell with picture
-            gridHTML += `
-                <div class="grid-cell center-cell" data-position="4">
-                    <div class="picture-container">
-                        <img src="${currentWord.image}" alt="" class="draggable-picture" id="draggablePic" data-word="${currentWord.word}">
+            // Center cell - draggable
+            if (centerIsPicture) {
+                gridHTML += `
+                    <div class="grid-cell center-cell" data-position="4">
+                        <div class="picture-container">
+                            <img src="${currentWord.image}" alt="" class="draggable-picture" id="draggablePic" data-word="${currentWord.word}">
+                        </div>
                     </div>
-                </div>
-            `;
+                `;
+            } else {
+                gridHTML += `
+                    <div class="grid-cell center-cell" data-position="4">
+                        <div class="picture-container">
+                            <span class="word draggable-picture" id="draggablePic" data-word="${currentWord.word}" style="font-size: clamp(1.2rem, 5vw, 2rem); font-weight: 700; cursor: grab;">${currentWord.word}</span>
+                        </div>
+                    </div>
+                `;
+            }
         } else {
             const word = otherWords[wordIndex] || currentWord;
             const isCorrect = word.word === currentWord.word;
-            gridHTML += `
-                <div class="grid-cell word-cell" data-position="${i}" data-word="${word.word}" data-correct="${isCorrect}">
-                    <span class="word">${word.word}</span>
-                </div>
-            `;
+            
+            if (surroundIsPicture) {
+                // Surrounding cells show pictures
+                gridHTML += `
+                    <div class="grid-cell word-cell picture-mode" data-position="${i}" data-word="${word.word}" data-correct="${isCorrect}">
+                        <img src="${word.image}" alt="">
+                        <div class="word-reveal"><span class="word">${word.word}</span></div>
+                    </div>
+                `;
+            } else {
+                // Surrounding cells show words
+                gridHTML += `
+                    <div class="grid-cell word-cell" data-position="${i}" data-word="${word.word}" data-correct="${isCorrect}">
+                        <span class="word">${word.word}</span>
+                    </div>
+                `;
+            }
             wordIndex++;
         }
     }
@@ -390,18 +550,20 @@ function nextRound() {
     if (!hasCorrectWord) {
         // Replace a random word cell with the correct word
         const randomPos = positions[Math.floor(Math.random() * positions.length)];
-        gridHTML = gridHTML.replace(
-            new RegExp(`data-position="${randomPos}"[^>]*data-correct="false"`),
-            `data-position="${randomPos}" data-word="${currentWord.word}" data-correct="true"`
-        );
-        // Also update the word text
+        
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = gridHTML;
         const targetCell = tempDiv.querySelector(`[data-position="${randomPos}"]`);
         if (targetCell) {
-            targetCell.querySelector('.word').textContent = currentWord.word;
             targetCell.dataset.word = currentWord.word;
             targetCell.dataset.correct = 'true';
+            
+            if (surroundIsPicture) {
+                targetCell.querySelector('img').src = currentWord.image;
+                targetCell.querySelector('.word-reveal .word').textContent = currentWord.word;
+            } else {
+                targetCell.querySelector('.word').textContent = currentWord.word;
+            }
         }
         gridHTML = tempDiv.innerHTML;
     }
@@ -497,11 +659,27 @@ function handleDrop(cell, isCorrect) {
         gameState.score += 1;
         scoreValue.textContent = gameState.score;
 
-        setTimeout(() => {
-            gameState.currentWordIndex++;
-            updateProgress();
-            nextRound();
-        }, 600);
+        // Show word reveal when surrounding cells are pictures (match-pic or word-pic modes)
+        const surroundIsPicture = (gameState.gameMode === 'match-pic' || gameState.gameMode === 'word-pic');
+        
+        if (surroundIsPicture) {
+            const wordReveal = cell.querySelector('.word-reveal');
+            if (wordReveal) {
+                wordReveal.classList.add('show');
+            }
+            // Longer delay to show the word
+            setTimeout(() => {
+                gameState.currentWordIndex++;
+                updateProgress();
+                nextRound();
+            }, 2000);
+        } else {
+            setTimeout(() => {
+                gameState.currentWordIndex++;
+                updateProgress();
+                nextRound();
+            }, 600);
+        }
     } else {
         // Wrong answer
         cell.classList.add('wrong');
