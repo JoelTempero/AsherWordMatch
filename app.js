@@ -341,6 +341,12 @@ function setupEventListeners() {
 // Lock button hold functions
 function startLockHold(e) {
     e.preventDefault();
+    
+    // If already unlocked, don't start a new hold timer
+    if (gameState.modesUnlocked) {
+        return;
+    }
+    
     lockHoldStart = Date.now();
     const lockBtn = document.getElementById('lockBtn');
     lockBtn.classList.add('unlocking');
@@ -352,24 +358,21 @@ function startLockHold(e) {
         lockBtn.classList.add('unlocked');
         lockBtn.textContent = '🔓';
         document.getElementById('modeToggle').classList.add('visible');
-        
-        // Auto-lock after 10 seconds of inactivity
-        setTimeout(() => {
-            lockModes();
-        }, 10000);
     }, 3000);
 }
 
 function endLockHold() {
-    if (lockHoldTimer) {
+    const lockBtn = document.getElementById('lockBtn');
+    
+    // If we were in the process of unlocking (not yet unlocked), cancel it
+    if (lockHoldTimer && !gameState.modesUnlocked) {
         clearTimeout(lockHoldTimer);
         lockHoldTimer = null;
+        lockBtn.classList.remove('unlocking');
     }
-    const lockBtn = document.getElementById('lockBtn');
-    lockBtn.classList.remove('unlocking');
     
-    // If already unlocked, clicking locks it again
-    if (gameState.modesUnlocked) {
+    // If already unlocked and user taps, lock it
+    if (gameState.modesUnlocked && (Date.now() - lockHoldStart < 500)) {
         lockModes();
     }
 }
@@ -438,10 +441,8 @@ function startGame(setId) {
     gameState.score = 0;
     gameState.currentWordIndex = 0;
     
-    // Shuffle all words and pick 9 (or less if set has fewer)
-    const shuffled = shuffleArray([...set.words]);
-    const numToPlay = Math.min(9, shuffled.length);
-    gameState.wordsToPlay = shuffled.slice(0, numToPlay);
+    // Shuffle ALL words in the set
+    gameState.wordsToPlay = shuffleArray([...set.words]);
     gameState.usedWords = [];
 
     currentSetName.textContent = set.name;
@@ -457,8 +458,9 @@ function startGame(setId) {
 // Setup next round
 function nextRound() {
     if (gameState.currentWordIndex >= gameState.wordsToPlay.length) {
-        showComplete();
-        return;
+        // All words done - reshuffle and start again
+        gameState.wordsToPlay = shuffleArray([...gameState.currentSet.words]);
+        gameState.currentWordIndex = 0;
     }
 
     renderCurrentRound();
