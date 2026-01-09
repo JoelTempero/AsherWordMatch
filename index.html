@@ -176,6 +176,24 @@
             border: 4px dashed #BDBDBD;
         }
 
+        /* Center cell when showing a word (Match Words, Word to Picture) */
+        .grid-cell.center-word-cell {
+            background: rgba(255,255,255,0.95);
+            border: 4px dashed var(--secondary);
+            padding: 10px;
+        }
+
+        .grid-cell.center-word-cell .word {
+            font-family: 'Nunito', sans-serif;
+            font-size: clamp(1rem, 4vw, 1.5rem);
+            font-weight: 700;
+            color: #333;
+            text-align: center;
+            text-transform: lowercase;
+            letter-spacing: 1px;
+            cursor: grab;
+        }
+
         .grid-cell.drop-target {
             animation: pulse 0.5s infinite alternate;
         }
@@ -220,8 +238,8 @@
         }
 
         .draggable-picture {
-            width: 90%;
-            height: 90%;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
             cursor: grab;
             transition: transform 0.2s ease;
@@ -728,8 +746,8 @@
 
         /* Picture mode cell styling */
         .grid-cell.picture-mode img {
-            width: 85%;
-            height: 85%;
+            width: 100%;
+            height: 100%;
             object-fit: contain;
         }
 

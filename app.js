@@ -400,6 +400,9 @@ function setGameMode(mode) {
     };
     document.getElementById(modeMap[mode]).classList.add('active');
     
+    // Lock modes after selection
+    lockModes();
+    
     // Re-render current round with new mode
     if (gameState.currentSet) {
         renderCurrentRound();
@@ -515,11 +518,10 @@ function renderCurrentRound() {
                     </div>
                 `;
             } else {
+                // Word in center - style like outside word cards
                 gridHTML += `
-                    <div class="grid-cell center-cell" data-position="4">
-                        <div class="picture-container">
-                            <span class="word draggable-picture" id="draggablePic" data-word="${currentWord.word}" style="font-size: clamp(1.2rem, 5vw, 2rem); font-weight: 700; cursor: grab;">${currentWord.word}</span>
-                        </div>
+                    <div class="grid-cell center-cell center-word-cell" data-position="4">
+                        <span class="word draggable-picture" id="draggablePic" data-word="${currentWord.word}">${currentWord.word}</span>
                     </div>
                 `;
             }
