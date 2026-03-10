@@ -839,10 +839,6 @@ function renderWordList() {
 }
 
 function addWordRow() {
-    if (editingWords.length >= 20) {
-        alert('Maximum 20 words per set!');
-        return;
-    }
     editingWords.push({ word: '', image: '' });
     renderWordList();
 }
