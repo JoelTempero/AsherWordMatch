@@ -1,0 +1,12 @@
+# --- sidequest backup .gitignore (managed) ---
+node_modules/
+dist/
+build/
+.next/
+.turbo/
+*.sst
+*.log
+SITE/site.zip
+*.mp4
+*.mov
+# .env is intentionally NOT ignored (disaster recovery)
