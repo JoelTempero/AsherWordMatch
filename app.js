@@ -283,8 +283,8 @@ function renderSetList() {
     }
     
     setList.innerHTML = sets.map(set => `
-        <div class="set-card" data-set-id="${set.id}">
-            <h3>${set.name}</h3>
+        <div class="set-card" data-set-id="${escapeHtml(set.id)}">
+            <h3>${escapeHtml(set.name)}</h3>
             <p>${set.words.length} words</p>
         </div>
     `).join('');
@@ -474,28 +474,15 @@ function renderCurrentRound() {
     const currentWord = gameState.wordsToPlay[gameState.currentWordIndex];
     const mode = gameState.gameMode;
     
-    // Get 8 other words for the grid (excluding current)
-    const otherWords = gameState.wordsToPlay
-        .filter((_, i) => i !== gameState.currentWordIndex)
-        .slice(0, 8);
-    
-    // If not enough words, fill with random from set
-    while (otherWords.length < 8) {
-        const randomWord = gameState.currentSet.words[Math.floor(Math.random() * gameState.currentSet.words.length)];
-        if (randomWord.word !== currentWord.word && !otherWords.find(w => w.word === randomWord.word)) {
-            otherWords.push(randomWord);
-        }
-    }
+    // Up to 8 distinct other words; small sets just leave some cells empty
+    const otherWords = pickOtherWords(gameState.currentSet.words, currentWord);
 
-    // Create grid positions (0-8, with 4 being center)
-    const positions = [0, 1, 2, 3, 5, 6, 7, 8]; // Exclude center (4)
-    shuffleArray(positions);
-    shuffleArray(otherWords);
+    // Grid positions (0-8, with 4 being center) - correct word goes in the first shuffled slot
+    const positions = shuffleArray([0, 1, 2, 3, 5, 6, 7, 8]);
+    const cellWords = {};
+    cellWords[positions[0]] = currentWord;
+    otherWords.forEach((w, i) => { cellWords[positions[i + 1]] = w; });
 
-    // Build grid HTML based on mode
-    let gridHTML = '';
-    let wordIndex = 0;
-    
     // Determine what to show in center and surrounding cells based on mode:
     // match-pic: center=picture, surround=pictures (match picture to picture)
     // pic-word: center=picture, surround=words (match picture to word)
@@ -504,8 +491,9 @@ function renderCurrentRound() {
     
     const centerIsPicture = (mode === 'match-pic' || mode === 'pic-word');
     const surroundIsPicture = (mode === 'match-pic' || mode === 'word-pic');
-    const showWordReveal = surroundIsPicture; // Show word after correct match when surrounding is pictures
+    const currentText = escapeHtml(currentWord.word);
     
+    let gridHTML = '';
     for (let i = 0; i < 9; i++) {
         if (i === 4) {
             // Center cell - draggable
@@ -513,7 +501,7 @@ function renderCurrentRound() {
                 gridHTML += `
                     <div class="grid-cell center-cell" data-position="4">
                         <div class="picture-container">
-                            <img src="${currentWord.image}" alt="" class="draggable-picture" id="draggablePic" data-word="${currentWord.word}">
+                            <img src="${escapeHtml(currentWord.image)}" alt="" class="draggable-picture" id="draggablePic" data-word="${currentText}">
                         </div>
                     </div>
                 `;
@@ -521,55 +509,37 @@ function renderCurrentRound() {
                 // Word in center - style like outside word cards
                 gridHTML += `
                     <div class="grid-cell center-cell center-word-cell" data-position="4">
-                        <span class="word draggable-picture" id="draggablePic" data-word="${currentWord.word}">${currentWord.word}</span>
+                        <span class="word draggable-picture" id="draggablePic" data-word="${currentText}">${currentText}</span>
                     </div>
                 `;
             }
-        } else {
-            const word = otherWords[wordIndex] || currentWord;
-            const isCorrect = word.word === currentWord.word;
-            
-            if (surroundIsPicture) {
-                // Surrounding cells show pictures
-                gridHTML += `
-                    <div class="grid-cell word-cell picture-mode" data-position="${i}" data-word="${word.word}" data-correct="${isCorrect}">
-                        <img src="${word.image}" alt="">
-                        <div class="word-reveal"><span class="word">${word.word}</span></div>
-                    </div>
-                `;
-            } else {
-                // Surrounding cells show words
-                gridHTML += `
-                    <div class="grid-cell word-cell" data-position="${i}" data-word="${word.word}" data-correct="${isCorrect}">
-                        <span class="word">${word.word}</span>
-                    </div>
-                `;
-            }
-            wordIndex++;
+            continue;
         }
-    }
 
-    // Make sure correct word is in one of the positions
-    const hasCorrectWord = otherWords.some(w => w.word === currentWord.word);
-    if (!hasCorrectWord) {
-        // Replace a random word cell with the correct word
-        const randomPos = positions[Math.floor(Math.random() * positions.length)];
-        
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = gridHTML;
-        const targetCell = tempDiv.querySelector(`[data-position="${randomPos}"]`);
-        if (targetCell) {
-            targetCell.dataset.word = currentWord.word;
-            targetCell.dataset.correct = 'true';
-            
-            if (surroundIsPicture) {
-                targetCell.querySelector('img').src = currentWord.image;
-                targetCell.querySelector('.word-reveal .word').textContent = currentWord.word;
-            } else {
-                targetCell.querySelector('.word').textContent = currentWord.word;
-            }
+        const word = cellWords[i];
+        if (!word) {
+            gridHTML += `<div class="grid-cell empty" data-position="${i}"></div>`;
+            continue;
         }
-        gridHTML = tempDiv.innerHTML;
+        const isCorrect = word.word === currentWord.word;
+        const text = escapeHtml(word.word);
+        
+        if (surroundIsPicture) {
+            // Surrounding cells show pictures
+            gridHTML += `
+                <div class="grid-cell word-cell picture-mode" data-position="${i}" data-word="${text}" data-correct="${isCorrect}">
+                    <img src="${escapeHtml(word.image)}" alt="">
+                    <div class="word-reveal"><span class="word">${text}</span></div>
+                </div>
+            `;
+        } else {
+            // Surrounding cells show words
+            gridHTML += `
+                <div class="grid-cell word-cell" data-position="${i}" data-word="${text}" data-correct="${isCorrect}">
+                    <span class="word">${text}</span>
+                </div>
+            `;
+        }
     }
 
     gameGrid.innerHTML = gridHTML;
@@ -711,15 +681,6 @@ function showComplete() {
     finalScore.textContent = `You got ${gameState.score} stars!`;
 }
 
-// Shuffle array helper
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-}
-
 // Login functionality
 function showLoginModal() {
     loginModal.classList.add('active');
@@ -773,9 +734,9 @@ function renderAdminSetList() {
         const badge = isBuiltIn ? `<span style="font-size: 0.7rem; background: ${isModified ? '#FF9800' : '#4CAF50'}; color: white; padding: 2px 6px; border-radius: 8px; margin-left: 8px;">${isModified ? 'Modified' : 'Starter'}</span>` : '';
         
         return `
-        <div class="set-item" data-set-id="${set.id}">
+        <div class="set-item" data-set-id="${escapeHtml(set.id)}">
             <div class="set-item-info">
-                <h4>${set.name}${badge}</h4>
+                <h4>${escapeHtml(set.name)}${badge}</h4>
                 <span>${set.words.length} words</span>
             </div>
             <div class="set-item-actions">
@@ -827,12 +788,12 @@ function renderWordList() {
     
     wordList.innerHTML = editingWords.map((word, index) => `
         <div class="word-item" data-index="${index}">
-            <input type="text" value="${word.word}" placeholder="Word" onchange="updateWord(${index}, 'word', this.value)">
+            <input type="text" value="${escapeHtml(word.word)}" placeholder="Word" onchange="updateWord(${index}, 'word', this.value)">
             <label class="upload-btn">
                 📷 Image
                 <input type="file" accept="image/*" onchange="handleImageUpload(${index}, this)">
             </label>
-            ${word.image ? `<img src="${word.image}" class="preview" alt="">` : '<div class="preview"></div>'}
+            ${word.image ? `<img src="${escapeHtml(word.image)}" class="preview" alt="">` : '<div class="preview"></div>'}
             <button class="btn-remove-word" onclick="removeWord(${index})">×</button>
         </div>
     `).join('');
