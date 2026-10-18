@@ -162,6 +162,99 @@
             visibility: hidden;
         }
 
+        /* Phrase rounds */
+        .game-grid.phrase-mode {
+            display: block;
+            aspect-ratio: auto;
+        }
+
+        .phrase-round {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .phrase-main-picture {
+            width: min(60vw, 280px);
+            aspect-ratio: 1;
+            padding: 10px;
+        }
+
+        .phrase-main-picture img,
+        .phrase-picture img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 14px;
+            pointer-events: none;
+        }
+
+        .phrase-slots {
+            display: flex;
+            gap: 14px;
+        }
+
+        .phrase-slot {
+            min-width: 110px;
+            min-height: 52px;
+            padding: 4px 10px;
+            border-bottom: 4px dashed #BDBDBD;
+            font-family: 'Nunito', sans-serif;
+            font-size: clamp(1.4rem, 5vw, 2rem);
+            font-weight: 700;
+            color: #333;
+            text-align: center;
+        }
+
+        .phrase-slot.filled {
+            border-bottom-color: var(--success);
+        }
+
+        .phrase-choices {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+        }
+
+        .phrase-choice {
+            min-width: 96px;
+            min-height: 64px;
+            padding: 10px 18px;
+            border: none;
+            font-family: 'Nunito', sans-serif;
+            font-size: clamp(1.2rem, 4.5vw, 1.6rem);
+            font-weight: 700;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .phrase-text {
+            padding: 10px 24px;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.95);
+            box-shadow: var(--card-shadow);
+            font-family: 'Nunito', sans-serif;
+            font-size: clamp(1.6rem, 6vw, 2.4rem);
+            font-weight: 700;
+            color: #333;
+        }
+
+        .phrase-pictures {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            width: min(88vw, 440px);
+        }
+
+        .phrase-picture {
+            aspect-ratio: 1;
+            padding: 8px;
+            border: none;
+            cursor: pointer;
+        }
+
         .family-note {
             margin-top: 10px;
             font-size: 0.85rem;
@@ -890,10 +983,12 @@
         </div>
 
         <div class="mode-toggle" id="modeToggle">
-            <button class="mode-btn" id="modeMatchPic">🖼️ Match Pictures</button>
-            <button class="mode-btn active" id="modePicWord">📝 Picture → Word</button>
-            <button class="mode-btn" id="modeMatchWord">🔤 Match Words</button>
-            <button class="mode-btn" id="modeWordPic">🔄 Word → Picture</button>
+            <button class="mode-btn" id="modeMatchPic" data-kind="word">🖼️ Match Pictures</button>
+            <button class="mode-btn active" id="modePicWord" data-kind="word">📝 Picture → Word</button>
+            <button class="mode-btn" id="modeMatchWord" data-kind="word">🔤 Match Words</button>
+            <button class="mode-btn" id="modeWordPic" data-kind="word">🔄 Word → Picture</button>
+            <button class="mode-btn" id="modePhraseBuild" data-kind="phrase" hidden>🧩 Picture → Phrase</button>
+            <button class="mode-btn" id="modePhrasePick" data-kind="phrase" hidden>🔎 Phrase → Picture</button>
         </div>
 
         <div class="progress-container">
@@ -1006,7 +1101,7 @@
         </div>
     </div>
 
-    <script src="logic.js?v=5"></script>
-    <script src="app.js?v=5"></script>
+    <script src="logic.js?v=6"></script>
+    <script src="app.js?v=6"></script>
 </body>
 </html>

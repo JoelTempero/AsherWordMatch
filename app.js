@@ -425,6 +425,8 @@ function setupEventListeners() {
     document.getElementById('modePicWord').addEventListener('click', () => setGameMode('pic-word'));
     document.getElementById('modeMatchWord').addEventListener('click', () => setGameMode('match-word'));
     document.getElementById('modeWordPic').addEventListener('click', () => setGameMode('word-pic'));
+    document.getElementById('modePhraseBuild').addEventListener('click', () => setGameMode('phrase-build'));
+    document.getElementById('modePhrasePick').addEventListener('click', () => setGameMode('phrase-pick'));
 
     // Drag handlers live on the document once, not per round
     document.addEventListener('touchmove', moveDrag, { passive: false });
@@ -486,22 +488,41 @@ function lockModes() {
     document.getElementById('modeToggle').classList.remove('visible');
 }
 
-// Set game mode
-function setGameMode(mode) {
+// Update game mode state and the toggle buttons (no re-render)
+function applyGameMode(mode) {
     gameState.gameMode = mode;
-    
+
     // Update button states
     document.querySelectorAll('.mode-btn').forEach(btn => btn.classList.remove('active'));
-    
+
     const modeMap = {
         'match-pic': 'modeMatchPic',
         'pic-word': 'modePicWord',
         'match-word': 'modeMatchWord',
-        'word-pic': 'modeWordPic'
+        'word-pic': 'modeWordPic',
+        'phrase-build': 'modePhraseBuild',
+        'phrase-pick': 'modePhrasePick'
     };
     document.getElementById(modeMap[mode]).classList.add('active');
-    
-    // Lock modes after selection
+}
+
+function isPhraseMode(mode) {
+    return mode.startsWith('phrase-');
+}
+
+// Only show the mode buttons that fit this kind of set
+function showModesFor(set) {
+    const kind = isPhraseSet(set) ? 'phrase' : 'word';
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+        btn.hidden = btn.dataset.kind !== kind;
+    });
+}
+
+// Set game mode
+function setGameMode(mode) {
+    applyGameMode(mode);
+
+    // Lock modesafter selection
     lockModes();
     
     // Re-render current round with new mode
@@ -541,12 +562,20 @@ function startGame(setId) {
     const set = sets.find(s => s.id === setId);
     if (!set) return;
 
+    // Phrase sets and word sets have their own modes
+    if (isPhraseSet(set) && !isPhraseMode(gameState.gameMode)) {
+        applyGameMode('phrase-build');
+    } else if (!isPhraseSet(set) && isPhraseMode(gameState.gameMode)) {
+        applyGameMode('pic-word');
+    }
+    showModesFor(set);
+
     gameState.currentSet = set;
     gameState.score = 0;
     gameState.currentWordIndex = 0;
-    
-    // Shuffle ALL words in the set
-    gameState.wordsToPlay = shuffleArray([...set.words]);
+
+    // Shuffle ALL words (or phrases) in the set
+    gameState.wordsToPlay = shuffleArray([...setEntries(set)]);
     gameState.usedWords = [];
 
     currentSetName.textContent = set.name;
@@ -563,16 +592,28 @@ function startGame(setId) {
 function nextRound() {
     if (gameState.currentWordIndex >= gameState.wordsToPlay.length) {
         // All words done - reshuffle and start again
-        gameState.wordsToPlay = shuffleArray([...gameState.currentSet.words]);
+        gameState.wordsToPlay = shuffleArray([...setEntries(gameState.currentSet)]);
         gameState.currentWordIndex = 0;
     }
 
     renderCurrentRound();
 }
 
+// A set's playable entries: words, or phrase items
+function setEntries(set) {
+    return set.items || set.words;
+}
+
 // Render current round based on game mode
 function renderCurrentRound() {
-    const currentWord = gameState.wordsToPlay[gameState.currentWordIndex];
+    const isPhrase = isPhraseSet(gameState.currentSet);
+    gameGrid.classList.toggle('phrase-mode', isPhrase);
+    if (isPhrase) {
+        renderPhraseRound();
+        return;
+    }
+
+    const currentWord= gameState.wordsToPlay[gameState.currentWordIndex];
     const mode = gameState.gameMode;
     
     // Up to 8 distinct other words; small sets just leave some cells empty
@@ -746,12 +787,8 @@ function handleDrop(cell, isCorrect) {
                 wordReveal.classList.add('show');
             }
         }
-        const advance = () => {
-            gameState.currentWordIndex++;
-            updateProgress();
-            nextRound();
-        };
-        // Say the word (must start inside the touch handler on iOS), hold, then reshuffle.
+        const advance = advanceRound;
+        // Say the word(must start inside the touch handler on iOS), hold, then reshuffle.
         // Without speech, keep the old delays - longer when surrounding cells are pictures
         const word = gameState.wordsToPlay[gameState.currentWordIndex];
         if (!speakAndThen(spokenText(word), advance)) {
@@ -764,6 +801,118 @@ function handleDrop(cell, isCorrect) {
         setTimeout(() => {
             cell.classList.remove('wrong');
         }, 400);
+    }
+}
+
+function advanceRound() {
+    gameState.currentWordIndex++;
+    updateProgress();
+    nextRound();
+}
+
+// Brief red wobble for a wrong choice
+function wobble(el) {
+    el.classList.add('wrong');
+    setTimeout(() => {
+        el.classList.remove('wrong');
+    }, 400);
+}
+
+// --- Phrase rounds ---
+
+// phrase-build: picture, two empty slots, tap the first word then the second
+// phrase-pick: phrase text, tap the matching picture from 4
+function renderPhraseRound() {
+    const item = gameState.wordsToPlay[gameState.currentWordIndex];
+    gameState.roundLocked = false;
+
+    if (gameState.gameMode === 'phrase-pick') {
+        const pictures = pickPhrasePictures(gameState.currentSet.items, item);
+        gameGrid.innerHTML = `
+            <div class="phrase-round">
+                <div class="phrase-text">${escapeHtml(phraseText(item))}</div>
+                <div class="phrase-pictures">
+                    ${pictures.map((pic, i) => `
+                        <button class="grid-cell phrase-picture" data-index="${i}">
+                            <img src="${escapeHtml(pic.image)}" alt="" onerror="imgFallback(this)">
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        gameGrid.querySelectorAll('.phrase-picture').forEach(btn => {
+            btn.addEventListener('click', () => pickPhrasePicture(btn, pictures[btn.dataset.index] === item));
+        });
+        return;
+    }
+
+    gameGrid.innerHTML = `
+        <div class="phrase-round">
+            <div class="grid-cell phrase-main-picture">
+                <img src="${escapeHtml(item.image)}" alt="" onerror="imgFallback(this)">
+            </div>
+            <div class="phrase-slots">
+                <span class="phrase-slot" id="phraseSlotFirst"></span>
+                <span class="phrase-slot" id="phraseSlotSecond"></span>
+            </div>
+            <div class="phrase-choices" id="phraseChoices"></div>
+        </div>
+    `;
+    renderPhraseChoices('first');
+}
+
+function renderPhraseChoices(slot) {
+    const item = gameState.wordsToPlay[gameState.currentWordIndex];
+    const choices = buildChoices(gameState.currentSet.items, item, slot);
+    const container = document.getElementById('phraseChoices');
+    container.innerHTML = choices.map(choice => `
+        <button class="grid-cell phrase-choice">${escapeHtml(choice)}</button>
+    `).join('');
+    container.querySelectorAll('.phrase-choice').forEach((btn, i) => {
+        btn.addEventListener('click', () => choosePhraseWord(btn, slot, choices[i]));
+    });
+}
+
+function choosePhraseWord(btn, slot, choice) {
+    if (gameState.roundLocked) return;
+    const item = gameState.wordsToPlay[gameState.currentWordIndex];
+    if (choice !== item[slot]) {
+        wobble(btn);
+        return;
+    }
+
+    const slotEl = document.getElementById(slot === 'first' ? 'phraseSlotFirst' : 'phraseSlotSecond');
+    slotEl.textContent = choice;
+    slotEl.classList.add('filled');
+
+    if (slot === 'first') {
+        renderPhraseChoices('second');
+        return;
+    }
+    document.getElementById('phraseChoices').innerHTML = '';
+    completePhraseRound(document.querySelector('.phrase-main-picture'));
+}
+
+function pickPhrasePicture(btn, isCorrect) {
+    if (gameState.roundLocked) return;
+    if (isCorrect) {
+        completePhraseRound(btn);
+    } else {
+        wobble(btn);
+    }
+}
+
+// Celebrate, say the whole phrase (inside the tap, for iOS), hold, then move on
+function completePhraseRound(cell) {
+    gameState.roundLocked = true;
+    cell.classList.add('correct');
+    gameState.score += 1;
+    scoreValue.textContent = gameState.score;
+
+    const item = gameState.wordsToPlay[gameState.currentWordIndex];
+    const text = spokenText({ word: phraseText(item), say: item.say });
+    if (!speakAndThen(text, advanceRound)) {
+        setTimeout(advanceRound, 2000);
     }
 }
 
