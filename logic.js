@@ -32,6 +32,27 @@ function pickOtherWords(words, current, max = 8) {
     return others.slice(0, max);
 }
 
+// Firestore docs max out at 1MB; warn well before that
+const SET_WARN_BYTES = 800000;
+const SET_MAX_BYTES = 1000000;
+
+// Reject if a promise takes longer than ms (e.g. Firebase blocked by a school filter)
+function withTimeout(promise, ms) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('timeout')), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+// Approximate stored size of a set (UTF-8 bytes of its JSON)
+function estimateSetBytes(set) {
+    return new TextEncoder().encode(JSON.stringify(set)).length;
+}
+
 if (typeof module !== 'undefined') {
-    module.exports = { shuffleArray, escapeHtml, pickOtherWords };
+    module.exports = {
+        shuffleArray, escapeHtml, pickOtherWords,
+        withTimeout, estimateSetBytes, SET_WARN_BYTES, SET_MAX_BYTES
+    };
 }

@@ -125,6 +125,16 @@ const builtInSets = [
     }
 ];
 
+// Neutral grey square for pictures that fail to load
+const FALLBACK_IMG = 'data:image/svg+xml,' + encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150"><rect width="150" height="150" rx="16" fill="#E0E0E0"/></svg>'
+);
+
+function imgFallback(img) {
+    img.onerror = null;
+    img.src = FALLBACK_IMG;
+}
+
 // Game state
 let gameState = {
     currentSet: null,
@@ -147,61 +157,81 @@ function getCustomSets() {
     return customSetsCache;
 }
 
-// Load custom sets from Firebase
+// Dev test sets (?dev) are never saved anywhere
+function isDevSet(setId) {
+    return String(setId).startsWith('dev_');
+}
+
+// Keep an offline copy of the sets on this device
+function cacheSetsLocally() {
+    try {
+        const realSets = customSetsCache.filter(s => !isDevSet(s.id));
+        localStorage.setItem('wordMatchCustomSets', JSON.stringify(realSets));
+    } catch (e) {
+        console.warn('Could not cache sets locally:', e);
+    }
+}
+
+function readLocalSets() {
+    try {
+        const stored = localStorage.getItem('wordMatchCustomSets');
+        return stored ? JSON.parse(stored) : [];
+    } catch (e) {
+        console.warn('Could not read local sets:', e);
+        return [];
+    }
+}
+
+// Load custom sets from Firebase (falls back to the offline copy)
 async function loadCustomSetsFromFirebase() {
     try {
-        const snapshot = await db.collection('cardSets').get();
+        const snapshot = await withTimeout(db.collection('cardSets').get(), 8000);
         customSetsCache = [];
         snapshot.forEach(doc => {
             customSetsCache.push({ id: doc.id, ...doc.data() });
         });
-        isDataLoaded = true;
+        cacheSetsLocally();
         console.log('Loaded', customSetsCache.length, 'custom sets from Firebase');
-        return customSetsCache;
     } catch (e) {
         console.error('Error loading from Firebase:', e);
-        // Fallback to localStorage if offline
-        const stored = localStorage.getItem('wordMatchCustomSets');
-        customSetsCache = stored ? JSON.parse(stored) : [];
-        isDataLoaded = true;
-        return customSetsCache;
+        customSetsCache = readLocalSets();
     }
+    if (window.DEV_SETS) {
+        customSetsCache.push(...window.DEV_SETS);
+    }
+    isDataLoaded = true;
+    return customSetsCache;
 }
 
 // Save a single set to Firebase
 async function saveSetToFirebase(set) {
-    try {
-        await db.collection('cardSets').doc(set.id).set(set);
-        // Also cache locally for offline use
-        localStorage.setItem('wordMatchCustomSets', JSON.stringify(customSetsCache));
-        return true;
-    } catch (e) {
-        console.error('Error saving to Firebase:', e);
-        alert('Error saving: ' + e.message + '\nChanges saved locally only.');
-        localStorage.setItem('wordMatchCustomSets', JSON.stringify(customSetsCache));
+    if (isDevSet(set.id)) {
+        alert('Dev test sets are never saved.');
         return false;
     }
+    try {
+        await db.collection('cardSets').doc(set.id).set(set);
+    } catch (e) {
+        console.error('Error saving to Firebase:', e);
+        alert('Error saving: ' + e.message + '\nChanges kept on this iPad only.');
+        cacheSetsLocally();
+        return false;
+    }
+    cacheSetsLocally();
+    return true;
 }
 
 // Delete a set from Firebase
 async function deleteSetFromFirebase(setId) {
+    if (isDevSet(setId)) return false;
     try {
         await db.collection('cardSets').doc(setId).delete();
-        // Also update local cache
-        localStorage.setItem('wordMatchCustomSets', JSON.stringify(customSetsCache));
-        return true;
     } catch (e) {
         console.error('Error deleting from Firebase:', e);
         alert('Error deleting: ' + e.message);
         return false;
     }
-}
-
-// Save custom sets (updates cache and Firebase)
-async function saveCustomSets(sets) {
-    customSetsCache = sets;
-    // Save all sets to local storage as backup
-    localStorage.setItem('wordMatchCustomSets', JSON.stringify(sets));
+    cacheSetsLocally();
     return true;
 }
 
@@ -232,6 +262,16 @@ let menuScreen, gameScreen, completeScreen, setList, gameGrid;
 let scoreValue, currentSetName, progressFill, progressText;
 let finalScore, loginModal, adminPortal, editSetModal;
 
+function loadScript(src) {
+    return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+    });
+}
+
 // Initialize the app
 async function init() {
     console.log('Initializing Word Match Game...');
@@ -259,6 +299,11 @@ async function init() {
             setList.innerHTML = '<p style="text-align: center; color: #888;">Loading card sets...</p>';
         }
         
+        // Dev test sets (never saved) - only with ?dev in the URL
+        if (new URLSearchParams(location.search).has('dev')) {
+            await loadScript('dev-fixtures.js');
+        }
+
         // Load data from Firebase
         await loadCustomSetsFromFirebase();
         
@@ -271,6 +316,11 @@ async function init() {
         renderSetList();
         setupEventListeners();
     }
+}
+
+// "12 words" / "9 phrases"
+function setCountLabel(set) {
+    return set.items ? `${set.items.length} phrases` : `${set.words.length} words`;
 }
 
 // Render the set selection list
@@ -286,7 +336,7 @@ function renderSetList() {
     setList.innerHTML = sets.map(set => `
         <div class="set-card" data-set-id="${escapeHtml(set.id)}">
             <h3>${escapeHtml(set.name)}</h3>
-            <p>${set.words.length} words</p>
+            <p>${setCountLabel(set)}</p>
         </div>
     `).join('');
 
@@ -509,7 +559,7 @@ function renderCurrentRound() {
                 gridHTML += `
                     <div class="grid-cell center-cell" data-position="4">
                         <div class="picture-container">
-                            <img src="${escapeHtml(currentWord.image)}" alt="" class="draggable-picture" id="draggablePic" data-word="${currentText}">
+                            <img src="${escapeHtml(currentWord.image)}" alt="" onerror="imgFallback(this)" class="draggable-picture" id="draggablePic" data-word="${currentText}">
                         </div>
                     </div>
                 `;
@@ -536,7 +586,7 @@ function renderCurrentRound() {
             // Surrounding cells show pictures
             gridHTML += `
                 <div class="grid-cell word-cell picture-mode" data-position="${i}" data-word="${text}" data-correct="${isCorrect}">
-                    <img src="${escapeHtml(word.image)}" alt="">
+                    <img src="${escapeHtml(word.image)}" alt="" onerror="imgFallback(this)">
                     <div class="word-reveal"><span class="word">${text}</span></div>
                 </div>
             `;
@@ -742,7 +792,7 @@ function renderAdminSetList() {
         <div class="set-item" data-set-id="${escapeHtml(set.id)}">
             <div class="set-item-info">
                 <h4>${escapeHtml(set.name)}${badge}</h4>
-                <span>${set.words.length} words</span>
+                <span>${setCountLabel(set)}</span>
             </div>
             <div class="set-item-actions">
                 <button class="btn-icon btn-edit" onclick="editSet('${set.id}')">✏️</button>
@@ -798,7 +848,7 @@ function renderWordList() {
                 📷 Image
                 <input type="file" accept="image/*" onchange="handleImageUpload(${index}, this)">
             </label>
-            ${word.image ? `<img src="${escapeHtml(word.image)}" class="preview" alt="">` : '<div class="preview"></div>'}
+            ${word.image ? `<img src="${escapeHtml(word.image)}" class="preview" alt="" onerror="imgFallback(this)">` : '<div class="preview"></div>'}
             <button class="btn-remove-word" onclick="removeWord(${index})">×</button>
         </div>
     `).join('');
@@ -1027,30 +1077,25 @@ async function saveSet() {
         return;
     }
 
-    let setToSave;
-    
-    if (editingSetId) {
-        // Update existing set
-        const index = customSetsCache.findIndex(s => s.id === editingSetId);
-        setToSave = {
-            id: editingSetId,
-            name: name,
-            words: validWords,
-            isBuiltIn: isBuiltInSet(editingSetId)
-        };
-        
-        if (index !== -1) {
-            customSetsCache[index] = setToSave;
-        } else {
-            customSetsCache.push(setToSave);
-        }
+    const setToSave = editingSetId
+        ? { id: editingSetId, name: name, words: validWords, isBuiltIn: isBuiltInSet(editingSetId) }
+        : { id: 'custom_' + Date.now(), name: name, words: validWords };
+
+    // Firestore docs max out at 1MB (pictures are stored inside the set)
+    const bytes = estimateSetBytes(setToSave);
+    const kb = Math.round(bytes / 1000);
+    if (bytes > SET_MAX_BYTES) {
+        alert(`This set is too large to save (${kb} KB of 1000 KB). Try splitting it into two sets.`);
+        return;
+    }
+    if (bytes > SET_WARN_BYTES && !confirm(`This set is getting very large (${kb} KB of 1000 KB). Save anyway?`)) {
+        return;
+    }
+
+    const index = customSetsCache.findIndex(s => s.id === setToSave.id);
+    if (index !== -1) {
+        customSetsCache[index] = setToSave;
     } else {
-        // Create new set
-        setToSave = {
-            id: 'custom_' + Date.now(),
-            name: name,
-            words: validWords
-        };
         customSetsCache.push(setToSave);
     }
 
@@ -1123,7 +1168,7 @@ function importBackup(event) {
     if (!file) return;
     
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = async function(e) {
         try {
             const backup = JSON.parse(e.target.result);
             
@@ -1150,8 +1195,10 @@ function importBackup(event) {
             }
             
             if (confirm(message)) {
-                const merged = [...existingSets, ...newSets];
-                saveCustomSets(merged);
+                for (const set of newSets) {
+                    customSetsCache.push(set);
+                    await saveSetToFirebase(set);
+                }
                 renderAdminSetList();
                 alert(`Successfully imported ${newSets.length} card set(s)!`);
             }

@@ -36,3 +36,24 @@ test('escapeHtml escapes quotes', () => {
     assert.equal(L.escapeHtml('a & b'), 'a &amp; b');
     assert.equal(L.escapeHtml(undefined), '');
 });
+
+// --- Task 3 ---
+test('withTimeout rejects after ms', async () => {
+    await assert.rejects(L.withTimeout(new Promise(() => {}), 10), /timeout/);
+});
+
+test('withTimeout passes through value', async () => {
+    assert.equal(await L.withTimeout(Promise.resolve(42), 1000), 42);
+});
+
+test('estimateSetBytes counts UTF-8 bytes', () => {
+    const ascii = L.estimateSetBytes({ a: 'x' });
+    const macron = L.estimateSetBytes({ a: 'ā' });
+    assert.equal(ascii, JSON.stringify({ a: 'x' }).length);
+    assert.equal(macron, ascii + 1);
+});
+
+test('set size limits', () => {
+    assert.equal(L.SET_WARN_BYTES, 800000);
+    assert.equal(L.SET_MAX_BYTES, 1000000);
+});
