@@ -50,9 +50,18 @@ function estimateSetBytes(set) {
     return new TextEncoder().encode(JSON.stringify(set)).length;
 }
 
+// The login screen stays username/password; Firebase needs an email and 6+ char password
+function toFirebaseCredentials(username, password) {
+    return {
+        email: `${username.trim().toLowerCase()}@word-match-game-3c60d.firebaseapp.com`,
+        password: password + '-wordmatch'
+    };
+}
+
 if (typeof module !== 'undefined') {
     module.exports = {
         shuffleArray, escapeHtml, pickOtherWords,
-        withTimeout, estimateSetBytes, SET_WARN_BYTES, SET_MAX_BYTES
+        withTimeout, estimateSetBytes, SET_WARN_BYTES, SET_MAX_BYTES,
+        toFirebaseCredentials
     };
 }

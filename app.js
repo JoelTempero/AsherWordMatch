@@ -13,6 +13,24 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+const auth = firebase.auth();
+
+// Resolves once Firebase has restored any saved sign-in on this device
+function waitForAuthReady() {
+    const ready = new Promise(resolve => {
+        const unsubscribe = auth.onAuthStateChanged(user => {
+            unsubscribe();
+            resolve(user);
+        });
+    });
+    return withTimeout(ready, 5000).catch(() => null);
+}
+
+// Small adult-facing hint when this device isn't signed in
+function updateFamilyNote() {
+    const note = document.getElementById('familyNote');
+    if (note) note.hidden = !!auth.currentUser;
+}
 
 // Cache for custom sets (loaded from Firebase)
 let customSetsCache = [];
@@ -303,6 +321,10 @@ async function init() {
         if (new URLSearchParams(location.search).has('dev')) {
             await loadScript('dev-fixtures.js');
         }
+
+        // Restore saved sign-in before loading (family sets need it)
+        await waitForAuthReady();
+        updateFamilyNote();
 
         // Load data from Firebase
         await loadCustomSetsFromFirebase();
@@ -748,16 +770,29 @@ function hideLoginModal() {
     loginModal.classList.remove('active');
 }
 
-function attemptLogin() {
+// First sign-in on a device unlocks the family sets; after that the code opens admin
+async function attemptLogin() {
     const username = document.getElementById('usernameInput').value;
     const password = document.getElementById('passwordInput').value;
+    const wasSignedIn = !!auth.currentUser;
 
-    if (username === 'belinda' && password === 'asher') {
+    try {
+        const creds = toFirebaseCredentials(username, password);
+        await auth.signInWithEmailAndPassword(creds.email, creds.password);
+    } catch (e) {
+        console.error('Login failed:', e);
+        document.getElementById('loginError').style.display = 'block';
+        return;
+    }
+
+    hideLoginModal();
+    updateFamilyNote();
+    if (wasSignedIn) {
         gameState.isAdmin = true;
-        hideLoginModal();
         showAdminPortal();
     } else {
-        document.getElementById('loginError').style.display = 'block';
+        await loadCustomSetsFromFirebase();
+        renderSetList();
     }
 }
 

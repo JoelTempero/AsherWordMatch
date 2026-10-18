@@ -57,3 +57,11 @@ test('set size limits', () => {
     assert.equal(L.SET_WARN_BYTES, 800000);
     assert.equal(L.SET_MAX_BYTES, 1000000);
 });
+
+// --- Task 4 ---
+test('toFirebaseCredentials maps the existing login', () => {
+    assert.deepEqual(L.toFirebaseCredentials(' Belinda ', 'asher'), {
+        email: 'belinda@word-match-game-3c60d.firebaseapp.com',
+        password: 'asher-wordmatch'
+    });
+});

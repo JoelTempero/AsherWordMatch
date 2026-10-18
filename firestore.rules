@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Only the signed-in family account can see or change card sets
+    match /cardSets/{setId} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

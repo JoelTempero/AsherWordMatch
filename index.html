@@ -13,6 +13,7 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <style>
         :root {
             --primary: #FF6B9D;
@@ -159,6 +160,13 @@
 
         .grid-cell.empty {
             visibility: hidden;
+        }
+
+        .family-note {
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #888;
+            text-align: center;
         }
 
         .grid-cell.word-cell {
@@ -852,6 +860,7 @@
         <div class="set-list" id="setList"></div>
         <div style="margin-top: 20px;">
             <button class="btn btn-secondary btn-small" id="loginBtn">🔐 Login</button>
+            <p class="family-note" id="familyNote" hidden>Family sets need the code — tap 🔐</p>
         </div>
     </div>
 
@@ -985,7 +994,7 @@
         </div>
     </div>
 
-    <script src="logic.js?v=2"></script>
-    <script src="app.js?v=2"></script>
+    <script src="logic.js?v=3"></script>
+    <script src="app.js?v=3"></script>
 </body>
 </html>
