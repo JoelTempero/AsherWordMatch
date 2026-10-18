@@ -143,6 +143,20 @@ const builtInSets = [
     }
 ];
 
+// Best available voice (iOS loads voices late, so refresh on voiceschanged)
+let speechVoice = null;
+
+function loadVoice() {
+    if (window.speechSynthesis) {
+        speechVoice = pickVoice(window.speechSynthesis.getVoices());
+    }
+}
+
+// Say text then call advance; false when this device can't speak
+function speakAndThen(text, advance) {
+    return speakThen(text, advance, { synth: window.speechSynthesis || null, voice: speechVoice });
+}
+
 // Neutral grey square for pictures that fail to load
 const FALLBACK_IMG = 'data:image/svg+xml,' + encodeURIComponent(
     '<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150"><rect width="150" height="150" rx="16" fill="#E0E0E0"/></svg>'
@@ -320,6 +334,12 @@ async function init() {
         // Dev test sets (never saved) - only with ?dev in the URL
         if (new URLSearchParams(location.search).has('dev')) {
             await loadScript('dev-fixtures.js');
+        }
+
+        // Voices
+        loadVoice();
+        if (window.speechSynthesis) {
+            window.speechSynthesis.addEventListener('voiceschanged', loadVoice);
         }
 
         // Restore saved sign-in before loading (family sets need it)
@@ -725,12 +745,17 @@ function handleDrop(cell, isCorrect) {
                 wordReveal.classList.add('show');
             }
         }
-        // Longer delay to show the word when surrounding cells are pictures
-        setTimeout(() => {
+        const advance = () => {
             gameState.currentWordIndex++;
             updateProgress();
             nextRound();
-        }, surroundIsPicture ? 2000 : 600);
+        };
+        // Say the word (must start inside the touch handler on iOS), hold, then reshuffle.
+        // Without speech, keep the old delays - longer when surrounding cells are pictures
+        const word = gameState.wordsToPlay[gameState.currentWordIndex];
+        if (!speakAndThen(spokenText(word), advance)) {
+            setTimeout(advance, surroundIsPicture ? 2000 : 600);
+        }
     } else {
         // Wrong answer
         cell.classList.add('wrong');
@@ -879,6 +904,7 @@ function renderWordList() {
     wordList.innerHTML = editingWords.map((word, index) => `
         <div class="word-item" data-index="${index}">
             <input type="text" value="${escapeHtml(word.word)}" placeholder="Word" onchange="updateWord(${index}, 'word', this.value)">
+            <input type="text" class="say-input" value="${escapeHtml(word.say || '')}" placeholder="Say it like (optional)" onchange="updateWord(${index}, 'say', this.value)">
             <label class="upload-btn">
                 📷 Image
                 <input type="file" accept="image/*" onchange="handleImageUpload(${index}, this)">
@@ -1105,7 +1131,9 @@ async function saveSet() {
     }
 
     // Filter out incomplete words
-    const validWords = editingWords.filter(w => w.word && w.image);
+    const validWords = editingWords
+        .filter(w => w.word && w.image)
+        .map(({ say, ...w }) => (say && say.trim() ? { ...w, say: say.trim() } : w));
     
     if (validWords.length < 3) {
         alert('Please add at least 3 complete word/image pairs!');

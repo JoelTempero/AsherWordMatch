@@ -58,10 +58,64 @@ function toFirebaseCredentials(username, password) {
     };
 }
 
+// --- Speech ---
+const HOLD_AFTER_SPEECH_MS = 1500;
+const SPEECH_MAX_WAIT_MS = 4000;
+const VOICE_LANGS = ['en-nz', 'en-au', 'en-gb'];
+
+// Best English voice: NZ, then AU, then GB, then any English; enhanced/premium first
+function pickVoice(voices) {
+    const english = (voices || []).filter(v => /^en/i.test(v.lang));
+    if (!english.length) return null;
+    const langRank = v => {
+        const i = VOICE_LANGS.indexOf(v.lang.replace('_', '-').toLowerCase());
+        return i === -1 ? VOICE_LANGS.length : i;
+    };
+    const qualityRank = v => (/enhanced|premium/i.test(v.name) ? 0 : 1);
+    return [...english].sort((a, b) => langRank(a) - langRank(b) || qualityRank(a) - qualityRank(b))[0];
+}
+
+// What to say for a word: the "say it like" spelling if Belinda set one
+function spokenText(entry) {
+    const say = (entry.say || '').trim();
+    return say || entry.word;
+}
+
+// Speak text, then call done once: 1.5s after speech ends, or after 4s if iOS never reports the end.
+// Returns false (and never calls done) when speech isn't available.
+function speakThen(text, done, { synth, voice = null, wait = setTimeout, clear = clearTimeout } = {}) {
+    if (!synth) return false;
+    let finished = false;
+    const finish = () => {
+        if (finished) return;
+        finished = true;
+        done();
+    };
+    const fallback = wait(finish, SPEECH_MAX_WAIT_MS);
+    const ended = () => {
+        if (finished) return;
+        clear(fallback);
+        wait(finish, HOLD_AFTER_SPEECH_MS);
+    };
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.9;
+    if (voice) {
+        utterance.voice = voice;
+        utterance.lang = voice.lang;
+    }
+    utterance.onend = ended;
+    utterance.onerror = ended;
+    synth.cancel();
+    synth.speak(utterance);
+    return true;
+}
+
 if (typeof module !== 'undefined') {
     module.exports = {
         shuffleArray, escapeHtml, pickOtherWords,
         withTimeout, estimateSetBytes, SET_WARN_BYTES, SET_MAX_BYTES,
-        toFirebaseCredentials
+        toFirebaseCredentials,
+        pickVoice, spokenText, speakThen, HOLD_AFTER_SPEECH_MS, SPEECH_MAX_WAIT_MS
     };
 }

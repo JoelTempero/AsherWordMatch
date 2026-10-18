@@ -65,3 +65,81 @@ test('toFirebaseCredentials maps the existing login', () => {
         password: 'asher-wordmatch'
     });
 });
+
+// --- Task 5 ---
+const v = (lang, name = lang) => ({ lang, name });
+
+test('pickVoice prefers en-NZ > en-AU > en-GB > en', () => {
+    assert.equal(L.pickVoice([v('en-US'), v('en-GB'), v('en_AU'), v('fr-FR')]).lang, 'en_AU');
+    assert.equal(L.pickVoice([v('en-US'), v('en-GB'), v('en-NZ')]).lang, 'en-NZ');
+    assert.equal(L.pickVoice([v('fr-FR'), v('en-US')]).lang, 'en-US');
+    assert.equal(L.pickVoice([v('fr-FR')]), null);
+});
+
+test('pickVoice prefers enhanced within a language', () => {
+    const picked = L.pickVoice([v('en-AU', 'Karen'), v('en-AU', 'Karen (Enhanced)'), v('en-GB', 'Daniel (Premium)')]);
+    assert.equal(picked.name, 'Karen (Enhanced)');
+});
+
+test('pickVoice returns null for empty list', () => {
+    assert.equal(L.pickVoice([]), null);
+    assert.equal(L.pickVoice(undefined), null);
+});
+
+test('spokenText uses say-it-like when set', () => {
+    assert.equal(L.spokenText({ word: 'Hezekiah', say: ' Hez-uh-KYE-uh ' }), 'Hez-uh-KYE-uh');
+    assert.equal(L.spokenText({ word: 'Hezekiah', say: '  ' }), 'Hezekiah');
+    assert.equal(L.spokenText({ word: 'dog' }), 'dog');
+});
+
+// Fake speech synth + clock
+function fakeEnv() {
+    const timers = [];
+    let now = 0;
+    const synth = { spoken: [], cancelled: 0, cancel() { this.cancelled++; }, speak(u) { this.spoken.push(u); } };
+    const wait = (fn, ms) => { const t = { fn, at: now + ms, done: false }; timers.push(t); return t; };
+    const clear = (t) => { if (t) t.done = true; };
+    const advance = (ms) => {
+        now += ms;
+        for (const t of timers.filter(t => !t.done && t.at <= now)) { t.done = true; t.fn(); }
+    };
+    return { synth, wait, clear, advance };
+}
+global.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; } };
+
+test('speakThen calls done 1500ms after onend, once', () => {
+    const env = fakeEnv();
+    let calls = 0;
+    assert.equal(L.speakThen('dog', () => calls++, env), true);
+    const u = env.synth.spoken[0];
+    assert.equal(u.text, 'dog');
+    assert.equal(u.rate, 0.9);
+    env.advance(800); u.onend();
+    env.advance(1499); assert.equal(calls, 0);
+    env.advance(1); assert.equal(calls, 1);
+    env.advance(10000); assert.equal(calls, 1);
+});
+
+test('speakThen falls back after 4000ms', () => {
+    const env = fakeEnv();
+    let calls = 0;
+    L.speakThen('dog', () => calls++, env);
+    env.advance(3999); assert.equal(calls, 0);
+    env.advance(1); assert.equal(calls, 1);
+    env.synth.spoken[0].onend?.();
+    env.advance(5000); assert.equal(calls, 1);
+});
+
+test('speakThen treats onerror like onend', () => {
+    const env = fakeEnv();
+    let calls = 0;
+    L.speakThen('dog', () => calls++, env);
+    env.synth.spoken[0].onerror();
+    env.advance(1500); assert.equal(calls, 1);
+});
+
+test('speakThen without synth returns false', () => {
+    let calls = 0;
+    assert.equal(L.speakThen('dog', () => calls++, { synth: null }), false);
+    assert.equal(calls, 0);
+});
