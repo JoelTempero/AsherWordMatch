@@ -58,6 +58,15 @@ function toFirebaseCredentials(username, password) {
     };
 }
 
+// --- Phrase sets ---
+function isPhraseSet(set) {
+    return set.type === 'phrase';
+}
+
+function phraseText(item) {
+    return `${item.first} ${item.second}`;
+}
+
 // --- Speech ---
 const HOLD_AFTER_SPEECH_MS = 1500;
 const SPEECH_MAX_WAIT_MS = 4000;
@@ -116,6 +125,7 @@ if (typeof module !== 'undefined') {
         shuffleArray, escapeHtml, pickOtherWords,
         withTimeout, estimateSetBytes, SET_WARN_BYTES, SET_MAX_BYTES,
         toFirebaseCredentials,
+        isPhraseSet, phraseText,
         pickVoice, spokenText, speakThen, HOLD_AFTER_SPEECH_MS, SPEECH_MAX_WAIT_MS
     };
 }

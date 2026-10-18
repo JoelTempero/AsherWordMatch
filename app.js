@@ -408,6 +408,7 @@ function setupEventListeners() {
     document.getElementById('cancelEditSet').addEventListener('click', hideEditSetModal);
     document.getElementById('saveSetBtn').addEventListener('click', saveSet);
     document.getElementById('addWordBtn').addEventListener('click', addWordRow);
+    document.getElementById('setTypeInput').addEventListener('change', (e) => changeSetType(e.target.value));
     document.getElementById('exportBtn').addEventListener('click', exportBackup);
     document.getElementById('importFile').addEventListener('change', importBackup);
 
@@ -865,6 +866,14 @@ function renderAdminSetList() {
 
 let editingSetId = null;
 let editingWords = [];
+let editingType = 'word'; // 'word' | 'phrase'
+
+// Switching type on a new set starts its list fresh
+function changeSetType(type) {
+    editingType = type;
+    editingWords = [];
+    renderWordList();
+}
 
 function showEditSetModal(setId = null) {
     editingSetId = setId;
@@ -879,14 +888,21 @@ function showEditSetModal(setId = null) {
         if (set) {
             title.textContent = 'Edit Card Set';
             nameInput.value = set.name;
-            editingWords = set.words.map(w => ({...w})); // Deep copy
+            editingType = isPhraseSet(set) ? 'phrase' : 'word';
+            editingWords = (set.items || set.words).map(w => ({...w})); // Deep copy
         }
     } else {
         // New set
         title.textContent = 'New Card Set';
         nameInput.value = '';
+        editingType = 'word';
         editingWords = [];
     }
+
+    // Type is chosen once, when the set is created
+    const typeInput = document.getElementById('setTypeInput');
+    typeInput.value = editingType;
+    typeInput.disabled = !!setId;
 
     renderWordList();
     modal.classList.add('active');
@@ -900,10 +916,17 @@ function hideEditSetModal() {
 
 function renderWordList() {
     const wordList = document.getElementById('wordList');
+    document.getElementById('addWordBtn').textContent = editingType === 'phrase' ? '+ Add Phrase' : '+ Add Word';
+
+    // Phrase rows: two words; word rows: one word
+    const textInputs = (word, index) => editingType === 'phrase'
+        ? `<input type="text" value="${escapeHtml(word.first)}" placeholder="First word" onchange="updateWord(${index}, 'first', this.value)">
+            <input type="text" value="${escapeHtml(word.second)}" placeholder="Second word" onchange="updateWord(${index}, 'second', this.value)">`
+        : `<input type="text" value="${escapeHtml(word.word)}" placeholder="Word" onchange="updateWord(${index}, 'word', this.value)">`;
     
     wordList.innerHTML = editingWords.map((word, index) => `
         <div class="word-item" data-index="${index}">
-            <input type="text" value="${escapeHtml(word.word)}" placeholder="Word" onchange="updateWord(${index}, 'word', this.value)">
+            ${textInputs(word, index)}
             <input type="text" class="say-input" value="${escapeHtml(word.say || '')}" placeholder="Say it like (optional)" onchange="updateWord(${index}, 'say', this.value)">
             <label class="upload-btn">
                 📷 Image
@@ -916,7 +939,7 @@ function renderWordList() {
 }
 
 function addWordRow() {
-    editingWords.push({ word: '', image: '' });
+    editingWords.push(editingType === 'phrase' ? { first: '', second: '', image: '' } : { word: '', image: '' });
     renderWordList();
 }
 
@@ -1130,19 +1153,32 @@ async function saveSet() {
         return;
     }
 
-    // Filter out incomplete words
-    const validWords = editingWords
-        .filter(w => w.word && w.image)
-        .map(({ say, ...w }) => (say && say.trim() ? { ...w, say: say.trim() } : w));
-    
-    if (validWords.length < 3) {
-        alert('Please add at least 3 complete word/image pairs!');
-        return;
-    }
+    // Keep "say it like" only when filled in
+    const tidySay = ({ say, ...w }) => (say && say.trim() ? { ...w, say: say.trim() } : w);
+    const id = editingSetId || 'custom_' + Date.now();
+    let setToSave;
 
-    const setToSave = editingSetId
-        ? { id: editingSetId, name: name, words: validWords, isBuiltIn: isBuiltInSet(editingSetId) }
-        : { id: 'custom_' + Date.now(), name: name, words: validWords };
+    if (editingType === 'phrase') {
+        const validItems = editingWords
+            .map(w => ({ ...w, first: (w.first || '').trim(), second: (w.second || '').trim() }))
+            .filter(w => w.first && w.second && w.image)
+            .map(tidySay);
+        if (validItems.length < 4) {
+            alert('Please add at least 4 complete phrases (two words and a picture each)!');
+            return;
+        }
+        setToSave = { id: id, name: name, type: 'phrase', items: validItems };
+    } else {
+        // Filter out incomplete words
+        const validWords = editingWords.filter(w => w.word && w.image).map(tidySay);
+        if (validWords.length < 3) {
+            alert('Please add at least 3 complete word/image pairs!');
+            return;
+        }
+        setToSave = editingSetId
+            ? { id: id, name: name, words: validWords, isBuiltIn: isBuiltInSet(editingSetId) }
+            : { id: id, name: name, words: validWords };
+    }
 
     // Firestore docs max out at 1MB (pictures are stored inside the set)
     const bytes = estimateSetBytes(setToSave);

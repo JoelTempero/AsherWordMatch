@@ -436,7 +436,8 @@
             color: #555;
         }
 
-        .form-group input {
+        .form-group input,
+        .form-group select {
             width: 100%;
             padding: 12px 15px;
             border: 2px solid #E0E0E0;
@@ -968,6 +969,13 @@
                 <label>Set Name</label>
                 <input type="text" id="setNameInput" placeholder="e.g., Animals, Colors...">
             </div>
+            <div class="form-group">
+                <label>Set Type</label>
+                <select id="setTypeInput">
+                    <option value="word">Word set (one word per picture)</option>
+                    <option value="phrase">Phrase set (two words per picture)</option>
+                </select>
+            </div>
             <div class="word-list" id="wordList"></div>
             <button class="btn btn-secondary" id="addWordBtn" style="margin-top: 15px; width: 100%;">+ Add Word</button>
             <div class="modal-buttons">
@@ -998,7 +1006,7 @@
         </div>
     </div>
 
-    <script src="logic.js?v=4"></script>
-    <script src="app.js?v=4"></script>
+    <script src="logic.js?v=5"></script>
+    <script src="app.js?v=5"></script>
 </body>
 </html>

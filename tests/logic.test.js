@@ -143,3 +143,14 @@ test('speakThen without synth returns false', () => {
     assert.equal(L.speakThen('dog', () => calls++, { synth: null }), false);
     assert.equal(calls, 0);
 });
+
+// --- Task 6 ---
+test('isPhraseSet only for type phrase', () => {
+    assert.equal(L.isPhraseSet({ type: 'phrase', items: [] }), true);
+    assert.equal(L.isPhraseSet({ words: [] }), false);
+    assert.equal(L.isPhraseSet({ type: 'word', words: [] }), false);
+});
+
+test('phraseText joins first and second', () => {
+    assert.equal(L.phraseText({ first: 'cow', second: 'running' }), 'cow running');
+});
