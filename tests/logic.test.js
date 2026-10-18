@@ -154,3 +154,66 @@ test('isPhraseSet only for type phrase', () => {
 test('phraseText joins first and second', () => {
     assert.equal(L.phraseText({ first: 'cow', second: 'running' }), 'cow running');
 });
+
+// --- Task 7 ---
+const p = (first, second, image = `${first}_${second}.png`) => ({ first, second, image });
+const nine = [];
+for (const a of ['cow', 'dog', 'cat']) for (const b of ['eating', 'sleeping', 'running']) nine.push(p(a, b));
+const key = it => `${it.first} ${it.second}`;
+
+test('buildChoices gives target plus 2 distinct others', () => {
+    for (let i = 0; i < 20; i++) {
+        const c = L.buildChoices(nine, nine[0], 'first');
+        assert.equal(c.length, 3);
+        assert.equal(new Set(c).size, 3);
+        assert.ok(c.includes('cow'));
+        const s = L.buildChoices(nine, nine[0], 'second');
+        assert.ok(s.includes('eating'));
+        assert.equal(new Set(s).size, 3);
+    }
+});
+
+test('buildChoices with only 2 distinct values returns 2', () => {
+    const items = [p('cow', 'eating'), p('dog', 'eating'), p('cow', 'running'), p('dog', 'running')];
+    assert.deepEqual(L.buildChoices(items, items[0], 'first').sort(), ['cow', 'dog']);
+});
+
+test('pickPhrasePictures full square', () => {
+    for (let i = 0; i < 30; i++) {
+        const target = nine[2]; // cow running
+        const out = L.pickPhrasePictures(nine, target);
+        assert.equal(out.length, 4);
+        assert.equal(out.filter(it => key(it) === 'cow running').length, 1);
+        const others = out.filter(it => key(it) !== 'cow running');
+        const X = others.find(it => it.first === 'cow').second;
+        const Y = others.find(it => it.second === 'running').first;
+        assert.notEqual(X, 'running');
+        assert.notEqual(Y, 'cow');
+        assert.deepEqual(new Set(out.map(key)), new Set(['cow running', `cow ${X}`, `${Y} running`, `${Y} ${X}`]));
+    }
+});
+
+test('pickPhrasePictures never includes a second correct answer', () => {
+    const items = [...nine, p('cow', 'running', 'cow_running_2.png')];
+    for (let i = 0; i < 30; i++) {
+        const out = L.pickPhrasePictures(items, items[2]);
+        assert.equal(out.filter(it => key(it) === 'cow running').length, 1);
+        assert.ok(out.includes(items[2]));
+    }
+});
+
+test('pickPhrasePictures partial fallback prefers shared words', () => {
+    // No square possible for cow running: no (X, running) and (X, Y) pair both present
+    const items = [p('cow', 'running'), p('cow', 'eating'), p('dog', 'sleeping'), p('red', 'car'), p('blue', 'bus')];
+    for (let i = 0; i < 30; i++) {
+        const out = L.pickPhrasePictures(items, items[0]);
+        assert.equal(out.length, 4);
+        assert.equal(out[0] === items[0] || out.includes(items[0]), true);
+        assert.ok(out.includes(items[1])); // shares "cow"
+    }
+});
+
+test('pickPhrasePictures with 4 items returns 4', () => {
+    const items = [p('a', 'b'), p('c', 'd'), p('e', 'f'), p('g', 'h')];
+    assert.equal(L.pickPhrasePictures(items, items[0]).length, 4);
+});
