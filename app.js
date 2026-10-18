@@ -11,13 +11,33 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const auth = firebase.auth();
+// Firebase is loaded by loadFirebase() at startup; db/auth stay null if it's blocked or offline
+let db = null;
+let auth = null;
+const FIREBASE_SDK = 'https://www.gstatic.com/firebasejs/10.7.1/';
+
+// Load the Firebase SDK without blocking the page (a school filter can block gstatic)
+async function loadFirebase() {
+    try {
+        await withTimeout((async () => {
+            await loadScript(FIREBASE_SDK + 'firebase-app-compat.js');
+            await Promise.all([
+                loadScript(FIREBASE_SDK + 'firebase-firestore-compat.js'),
+                loadScript(FIREBASE_SDK + 'firebase-auth-compat.js')
+            ]);
+        })(), 8000);
+        firebase.initializeApp(firebaseConfig);
+        db = firebase.firestore();
+        auth = firebase.auth();
+    } catch (e) {
+        console.warn('Firebase unavailable - using built-in and cached sets:', e);
+    }
+}
 
 // Resolves once Firebase has restored any saved sign-in on this device
 function waitForAuthReady() {
-    const ready = new Promise(resolve => {
+    if (!auth) return Promise.resolve(null);
+    const ready= new Promise(resolve => {
         const unsubscribe = auth.onAuthStateChanged(user => {
             unsubscribe();
             resolve(user);
@@ -29,7 +49,7 @@ function waitForAuthReady() {
 // Small adult-facing hint when this device isn't signed in
 function updateFamilyNote() {
     const note = document.getElementById('familyNote');
-    if (note) note.hidden = !!auth.currentUser;
+    if (note) note.hidden = !!(auth && auth.currentUser);
 }
 
 // Cache for custom sets (loaded from Firebase)
@@ -176,6 +196,7 @@ let gameState = {
     usedWords: [],
     isAdmin: false,
     roundLocked: false,
+    roundSeq: 0, // bumped whenever a round is drawn or the game is left
     gameMode: 'pic-word', // 'match-pic', 'pic-word', 'match-word', 'word-pic'
     modesUnlocked: false
 };
@@ -217,6 +238,7 @@ function readLocalSets() {
 // Load custom sets from Firebase (falls back to the offline copy)
 async function loadCustomSetsFromFirebase() {
     try {
+        if (!db) throw new Error('Firebase unavailable');
         const snapshot = await withTimeout(db.collection('cardSets').get(), 8000);
         customSetsCache = [];
         snapshot.forEach(doc => {
@@ -242,6 +264,7 @@ async function saveSetToFirebase(set) {
         return false;
     }
     try {
+        if (!db) throw new Error('No connection to Firebase');
         await db.collection('cardSets').doc(set.id).set(set);
     } catch (e) {
         console.error('Error saving to Firebase:', e);
@@ -257,6 +280,7 @@ async function saveSetToFirebase(set) {
 async function deleteSetFromFirebase(setId) {
     if (isDevSet(setId)) return false;
     try {
+        if (!db) throw new Error('No connection to Firebase');
         await db.collection('cardSets').doc(setId).delete();
     } catch (e) {
         console.error('Error deleting from Firebase:', e);
@@ -325,38 +349,35 @@ async function init() {
     
     console.log('DOM elements loaded, setList:', setList);
     
+    // Playable straight away: built-in sets plus this device's cached copy
+    customSetsCache = readLocalSets();
+    renderSetList();
+    setupEventListeners();
+
+    // Voices
+    loadVoice();
+    if (window.speechSynthesis) {
+        window.speechSynthesis.addEventListener('voiceschanged', loadVoice);
+    }
+
     try {
-        // Show loading state
-        if (setList) {
-            setList.innerHTML = '<p style="text-align: center; color: #888;">Loading card sets...</p>';
-        }
-        
         // Dev test sets (never saved) - only with ?dev in the URL
         if (new URLSearchParams(location.search).has('dev')) {
             await loadScript('dev-fixtures.js');
         }
 
-        // Voices
-        loadVoice();
-        if (window.speechSynthesis) {
-            window.speechSynthesis.addEventListener('voiceschanged', loadVoice);
-        }
-
-        // Restore saved sign-in before loading (family sets need it)
+        // Firebase, then any saved sign-in (family sets need it)
+        await loadFirebase();
         await waitForAuthReady();
         updateFamilyNote();
 
-        // Load data from Firebase
+        // Load data from Firebase (falls back to the cached copy)
         await loadCustomSetsFromFirebase();
-        
         renderSetList();
-        setupEventListeners();
         console.log('Initialization complete!');
     } catch (e) {
         console.error('Init error:', e);
-        // Still render with built-in sets if Firebase fails
-        renderSetList();
-        setupEventListeners();
+        updateFamilyNote();
     }
 }
 
@@ -547,6 +568,9 @@ async function refreshData() {
 
 // Show menu screen
 async function showMenu() {
+    // Stop any pending "next round" and speech from the game being left
+    gameState.roundSeq++;
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
     menuScreen.classList.add('active');
     completeScreen.classList.remove('active');
     gameScreen.style.display = 'none';
@@ -606,6 +630,7 @@ function setEntries(set) {
 
 // Render current round based on game mode
 function renderCurrentRound() {
+    gameState.roundSeq++;
     const isPhrase = isPhraseSet(gameState.currentSet);
     gameGrid.classList.toggle('phrase-mode', isPhrase);
     if (isPhrase) {
@@ -663,7 +688,7 @@ function renderCurrentRound() {
             gridHTML += `<div class="grid-cell empty" data-position="${i}"></div>`;
             continue;
         }
-        const isCorrect = word.word === currentWord.word;
+        const isCorrect = sameWord(word.word, currentWord.word);
         const text = escapeHtml(word.word);
         
         if (surroundIsPicture) {
@@ -787,7 +812,7 @@ function handleDrop(cell, isCorrect) {
                 wordReveal.classList.add('show');
             }
         }
-        const advance = advanceRound;
+        const advance = onlyIfCurrent(gameState.roundSeq, () => gameState.roundSeq, advanceRound);
         // Say the word(must start inside the touch handler on iOS), hold, then reshuffle.
         // Without speech, keep the old delays - longer when surrounding cells are pictures
         const word = gameState.wordsToPlay[gameState.currentWordIndex];
@@ -876,7 +901,7 @@ function renderPhraseChoices(slot) {
 function choosePhraseWord(btn, slot, choice) {
     if (gameState.roundLocked) return;
     const item = gameState.wordsToPlay[gameState.currentWordIndex];
-    if (choice !== item[slot]) {
+    if (!sameWord(choice, item[slot])) {
         wobble(btn);
         return;
     }
@@ -911,8 +936,9 @@ function completePhraseRound(cell) {
 
     const item = gameState.wordsToPlay[gameState.currentWordIndex];
     const text = spokenText({ word: phraseText(item), say: item.say });
-    if (!speakAndThen(text, advanceRound)) {
-        setTimeout(advanceRound, 2000);
+    const advance = onlyIfCurrent(gameState.roundSeq, () => gameState.roundSeq, advanceRound);
+    if (!speakAndThen(text, advance)) {
+        setTimeout(advance, 2000);
     }
 }
 
@@ -949,9 +975,10 @@ function hideLoginModal() {
 async function attemptLogin() {
     const username = document.getElementById('usernameInput').value;
     const password = document.getElementById('passwordInput').value;
-    const wasSignedIn = !!auth.currentUser;
+    const wasSignedIn = !!(auth && auth.currentUser);
 
     try {
+        if (!auth) throw new Error('Firebase unavailable');
         const creds = toFirebaseCredentials(username, password);
         await auth.signInWithEmailAndPassword(creds.email, creds.password);
     } catch (e) {
@@ -1319,7 +1346,10 @@ async function saveSet() {
         setToSave = { id: id, name: name, type: 'phrase', items: validItems };
     } else {
         // Filter out incomplete words
-        const validWords = editingWords.filter(w => w.word && w.image).map(tidySay);
+        const validWords = editingWords
+            .map(w => ({ ...w, word: (w.word || '').trim() }))
+            .filter(w => w.word && w.image)
+            .map(tidySay);
         if (validWords.length < 3) {
             alert('Please add at least 3 complete word/image pairs!');
             return;

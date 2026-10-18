@@ -217,3 +217,52 @@ test('pickPhrasePictures with 4 items returns 4', () => {
     const items = [p('a', 'b'), p('c', 'd'), p('e', 'f'), p('g', 'h')];
     assert.equal(L.pickPhrasePictures(items, items[0]).length, 4);
 });
+
+// --- Final review fixes ---
+test('sameWord compares trimmed lowercase', () => {
+    assert.equal(L.sameWord('Mum ', 'mum'), true);
+    assert.equal(L.sameWord('Mum', 'Dad'), false);
+});
+
+test('pickOtherWords treats case and spaces as the same word', () => {
+    const words = [w('Mum'), w('Mum '), w('mum'), w('Dad')];
+    const out = L.pickOtherWords(words, words[0]);
+    assert.deepEqual(out.map(x => x.word), ['Dad']);
+});
+
+test('buildChoices dedupes by normalised word', () => {
+    const items = [p('cow', 'eating'), p('Cow ', 'running'), p('dog', 'eating'), p('dog', 'running')];
+    for (let i = 0; i < 20; i++) {
+        const c = L.buildChoices(items, items[0], 'first');
+        assert.equal(c.length, 2);
+        assert.equal(c.filter(x => L.sameWord(x, 'cow')).length, 1);
+    }
+});
+
+test('pickPhrasePictures excludes case-variant duplicates of the target', () => {
+    const items = [...nine, p('Cow', 'running ', 'variant.png')];
+    for (let i = 0; i < 30; i++) {
+        const out = L.pickPhrasePictures(items, items[2]);
+        assert.equal(out.filter(it => L.sameWord(it.first, 'cow') && L.sameWord(it.second, 'running')).length, 1);
+    }
+});
+
+test('speakThen only cancels when speech is active', () => {
+    const env = fakeEnv();
+    env.synth.speaking = false; env.synth.pending = false;
+    L.speakThen('dog', () => {}, env);
+    assert.equal(env.synth.cancelled, 0);
+    env.synth.speaking = true;
+    L.speakThen('cat', () => {}, env);
+    assert.equal(env.synth.cancelled, 1);
+});
+
+test('onlyIfCurrent drops callbacks from an old round', () => {
+    let seq = 1, ran = 0;
+    const cb = L.onlyIfCurrent(seq, () => seq, () => ran++);
+    seq = 2;
+    cb();
+    assert.equal(ran, 0);
+    L.onlyIfCurrent(seq, () => seq, () => ran++)();
+    assert.equal(ran, 1);
+});
