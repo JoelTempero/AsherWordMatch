@@ -133,6 +133,7 @@ let gameState = {
     wordsToPlay: [],
     usedWords: [],
     isAdmin: false,
+    roundLocked: false,
     gameMode: 'pic-word', // 'match-pic', 'pic-word', 'match-word', 'word-pic'
     modesUnlocked: false
 };
@@ -331,6 +332,13 @@ function setupEventListeners() {
     document.getElementById('modePicWord').addEventListener('click', () => setGameMode('pic-word'));
     document.getElementById('modeMatchWord').addEventListener('click', () => setGameMode('match-word'));
     document.getElementById('modeWordPic').addEventListener('click', () => setGameMode('word-pic'));
+
+    // Drag handlers live on the document once, not per round
+    document.addEventListener('touchmove', moveDrag, { passive: false });
+    document.addEventListener('touchend', endDrag);
+    document.addEventListener('touchcancel', cancelDrag);
+    document.addEventListener('mousemove', moveDrag);
+    document.addEventListener('mouseup', endDrag);
 
     // Enter key for login
     document.getElementById('passwordInput').addEventListener('keypress', (e) => {
@@ -543,92 +551,95 @@ function renderCurrentRound() {
     }
 
     gameGrid.innerHTML = gridHTML;
+    gameState.roundLocked = false;
     setupDragAndDrop();
 }
 
-// Setup drag and drop functionality
+// Active drag: { el, clone, touchId } - one at a time
+let drag = null;
+
+// Bind drag start on this round's draggable (document-level handlers are bound once)
 function setupDragAndDrop() {
     const draggable = document.getElementById('draggablePic');
-    const wordCells = document.querySelectorAll('.word-cell');
+    if (!draggable) return;
+    draggable.addEventListener('touchstart', startDrag, { passive: false });
+    draggable.addEventListener('mousedown', startDrag);
+}
+
+// Find this drag's point in a touch or mouse event (null if the event isn't ours)
+function dragPoint(e) {
+    if (!e.changedTouches) return drag.touchId === null ? e : null;
+    return Array.from(e.changedTouches).find(t => t.identifier === drag.touchId) || null;
+}
+
+function startDrag(e) {
+    e.preventDefault();
+    // Ignore a second finger, or anything while the round is finishing
+    if (drag || gameState.roundLocked) return;
+
+    const el = e.currentTarget;
+    const touch = e.changedTouches ? e.changedTouches[0] : e;
+
+    // Create clone for dragging
+    const clone = el.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.classList.add('drag-clone');
+    clone.style.width = el.offsetWidth + 'px';
+    clone.style.height = el.offsetHeight + 'px';
+    clone.style.left = (touch.clientX - el.offsetWidth / 2) + 'px';
+    clone.style.top = (touch.clientY - el.offsetHeight / 2) + 'px';
+    document.body.appendChild(clone);
+
+    drag = { el, clone, touchId: e.changedTouches ? touch.identifier : null };
+    el.classList.add('dragging');
     
-    let isDragging = false;
-    let clone = null;
-    let startX, startY;
+    // Highlight potential drop targets
+    document.querySelectorAll('.word-cell').forEach(cell => cell.classList.add('drop-target'));
+}
 
-    const handleStart = (e) => {
-        e.preventDefault();
-        isDragging = true;
-        
-        const touch = e.touches ? e.touches[0] : e;
-        startX = touch.clientX;
-        startY = touch.clientY;
+function moveDrag(e) {
+    if (!drag) return;
+    const point = dragPoint(e);
+    if (!point) return;
+    e.preventDefault();
+    drag.clone.style.left = (point.clientX - drag.clone.offsetWidth / 2) + 'px';
+    drag.clone.style.top = (point.clientY - drag.clone.offsetHeight / 2) + 'px';
+}
 
-        // Create clone for dragging
-        clone = draggable.cloneNode(true);
-        clone.classList.add('drag-clone');
-        clone.style.width = draggable.offsetWidth + 'px';
-        clone.style.height = draggable.offsetHeight + 'px';
-        clone.style.left = (startX - draggable.offsetWidth / 2) + 'px';
-        clone.style.top = (startY - draggable.offsetHeight / 2) + 'px';
-        document.body.appendChild(clone);
+function clearDrag() {
+    drag.clone.remove();
+    drag.el.classList.remove('dragging');
+    document.querySelectorAll('.word-cell').forEach(cell => cell.classList.remove('drop-target'));
+    drag = null;
+}
 
-        draggable.classList.add('dragging');
-        
-        // Highlight potential drop targets
-        wordCells.forEach(cell => cell.classList.add('drop-target'));
-    };
+function endDrag(e) {
+    if (!drag) return;
+    const point = dragPoint(e);
+    if (!point) return;
+    clearDrag();
 
-    const handleMove = (e) => {
-        if (!isDragging || !clone) return;
-        e.preventDefault();
+    // Check which cell was dropped on
+    const dropTarget = document.elementFromPoint(point.clientX, point.clientY);
+    const targetCell = dropTarget?.closest('.word-cell');
+    if (targetCell) {
+        handleDrop(targetCell, targetCell.dataset.correct === 'true');
+    }
+}
 
-        const touch = e.touches ? e.touches[0] : e;
-        clone.style.left = (touch.clientX - clone.offsetWidth / 2) + 'px';
-        clone.style.top = (touch.clientY - clone.offsetHeight / 2) + 'px';
-    };
-
-    const handleEnd = (e) => {
-        if (!isDragging) return;
-        isDragging = false;
-
-        const touch = e.changedTouches ? e.changedTouches[0] : e;
-        const dropX = touch.clientX;
-        const dropY = touch.clientY;
-
-        // Remove clone
-        if (clone) {
-            clone.remove();
-            clone = null;
-        }
-
-        draggable.classList.remove('dragging');
-        wordCells.forEach(cell => cell.classList.remove('drop-target'));
-
-        // Check which cell was dropped on
-        const dropTarget = document.elementFromPoint(dropX, dropY);
-        const targetCell = dropTarget?.closest('.word-cell');
-
-        if (targetCell) {
-            const isCorrect = targetCell.dataset.correct === 'true';
-            handleDrop(targetCell, isCorrect);
-        }
-    };
-
-    // Touch events
-    draggable.addEventListener('touchstart', handleStart, { passive: false });
-    document.addEventListener('touchmove', handleMove, { passive: false });
-    document.addEventListener('touchend', handleEnd);
-
-    // Mouse events (for testing on desktop)
-    draggable.addEventListener('mousedown', handleStart);
-    document.addEventListener('mousemove', handleMove);
-    document.addEventListener('mouseup', handleEnd);
+// iOS can cancel a touch (notification, gesture) - drop the clone without scoring
+function cancelDrag(e) {
+    if (!drag || !dragPoint(e)) return;
+    clearDrag();
 }
 
 // Handle drop result
 function handleDrop(cell, isCorrect) {
+    if (gameState.roundLocked) return;
+
     if (isCorrect) {
-        // Success!
+        // Success! Lock input until the next round renders
+        gameState.roundLocked = true;
         cell.classList.add('correct');
         gameState.score += 1;
         scoreValue.textContent = gameState.score;
@@ -641,19 +652,13 @@ function handleDrop(cell, isCorrect) {
             if (wordReveal) {
                 wordReveal.classList.add('show');
             }
-            // Longer delay to show the word
-            setTimeout(() => {
-                gameState.currentWordIndex++;
-                updateProgress();
-                nextRound();
-            }, 2000);
-        } else {
-            setTimeout(() => {
-                gameState.currentWordIndex++;
-                updateProgress();
-                nextRound();
-            }, 600);
         }
+        // Longer delay to show the word when surrounding cells are pictures
+        setTimeout(() => {
+            gameState.currentWordIndex++;
+            updateProgress();
+            nextRound();
+        }, surroundIsPicture ? 2000 : 600);
     } else {
         // Wrong answer
         cell.classList.add('wrong');
@@ -920,10 +925,32 @@ function updateCropImage() {
     img.style.transform = `translate(${cropState.x}px, ${cropState.y}px) scale(${cropState.scale})`;
 }
 
+let cropEventsBound = false;
+
 function setupCropEvents() {
-    const container = document.getElementById('cropContainer');
-    const img = document.getElementById('cropImage');
     const slider = document.getElementById('zoomSlider');
+
+    // Zoom slider
+    slider.oninput = function() {
+        const containerSize = 280;
+        const minDim = Math.min(cropState.imgWidth, cropState.imgHeight);
+        const baseScale = containerSize / minDim;
+        cropState.scale = baseScale * parseFloat(this.value);
+        updateCropImage();
+    };
+    
+    // Cancel button
+    document.getElementById('cancelCrop').onclick = () => {
+        document.getElementById('cropModal').classList.remove('active');
+    };
+    
+    // Apply button
+    document.getElementById('applyCrop').onclick = applyCrop;
+
+    // Drag listeners only need binding once
+    if (cropEventsBound) return;
+    cropEventsBound = true;
+    const container = document.getElementById('cropContainer');
     
     const handleStart = (e) => {
         e.preventDefault();
@@ -946,35 +973,13 @@ function setupCropEvents() {
         cropState.isDragging = false;
     };
     
-    // Remove old listeners
-    container.replaceWith(container.cloneNode(true));
-    const newContainer = document.getElementById('cropContainer');
-    const newImg = document.getElementById('cropImage');
-    newImg.src = img.src;
-    
-    newContainer.addEventListener('mousedown', handleStart);
-    newContainer.addEventListener('touchstart', handleStart, { passive: false });
+    container.addEventListener('mousedown', handleStart);
+    container.addEventListener('touchstart', handleStart, { passive: false });
     document.addEventListener('mousemove', handleMove);
     document.addEventListener('touchmove', handleMove, { passive: false });
     document.addEventListener('mouseup', handleEnd);
     document.addEventListener('touchend', handleEnd);
-    
-    // Zoom slider
-    slider.oninput = function() {
-        const containerSize = 280;
-        const minDim = Math.min(cropState.imgWidth, cropState.imgHeight);
-        const baseScale = containerSize / minDim;
-        cropState.scale = baseScale * parseFloat(this.value);
-        updateCropImage();
-    };
-    
-    // Cancel button
-    document.getElementById('cancelCrop').onclick = () => {
-        document.getElementById('cropModal').classList.remove('active');
-    };
-    
-    // Apply button
-    document.getElementById('applyCrop').onclick = applyCrop;
+    document.addEventListener('touchcancel', handleEnd);
 }
 
 function applyCrop() {
