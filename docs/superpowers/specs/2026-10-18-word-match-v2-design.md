@@ -108,7 +108,7 @@ On a correct match, keep the matched picture and word highlighted while the word
 The existing lock button and mode toggle stay. When a phrase set is being played, the toggle shows the two phrase modes instead of the four word modes.
 
 ## Constraints
-- Keep vanilla JS, a single `app.js`, no build step, Firebase compat SDK via CDN.
+- Keep vanilla JS, no build step, Firebase compat SDK via CDN. All code stays in `app.js`, except pure testable logic, which goes in a small `logic.js` (added at the planning stage so it can be unit tested with `node --test`).
 - iPad Safari (including the home-screen app) is the target. Desktop mouse support stays for testing.
 - Deploy is a push to `origin/main` (GitHub Pages). The repo is public. Nothing secret goes in it (the Firebase web config is fine).
 - Production Firestore is the live family data. Never delete or overwrite existing sets while testing.
