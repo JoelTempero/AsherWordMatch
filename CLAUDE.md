@@ -30,6 +30,7 @@ Brain path: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Test: `node --test tests/*.test.js` (pure logic in `logic.js`)
 - Bump `?v=N` on the logic.js/app.js script tags when changing them (iPad cache-bust)
 - Deploy: push to `origin/main`.
+- Rules: `npx firebase-tools deploy --only firestore:rules --project word-match-game-3c60d --account leojfx@gmail.com` (project is owned by leojfx@gmail.com, not joel@tempero.nz)
 
 ## Code Conventions
 - Built-in sets hardcoded in `builtInSets` (app.js); images in `images/words/*.png`
@@ -46,8 +47,8 @@ Brain path: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - [x] Joel: enable Email/Password in Firebase console → Authentication
 - [x] Two admin accounts created (Joel + Belinda, real emails); rules allow only their UIDs
 - [x] Test sign-in locally, then merge to main + push (Pages goes live)
-- [ ] Belinda signs in once on every iPad (home-screen icon recommended)
-- [ ] ONLY THEN deploy rules: `firebase deploy --only firestore:rules` → verify REST read returns 403
+- [ ] Belinda signs in once on every iPad (home-screen icon recommended); until then those iPads show built-ins only
+- [x] Rules deployed 2026-10-20 (Joel chose lock-now): anonymous REST read → 403; self sign-up disabled (ADMIN_ONLY_OPERATION)
 - [ ] Send Belinda the reply; test speech on a real iPad
 - [ ] Deferred minors from final review (see session log)
 
@@ -66,6 +67,5 @@ Brain path: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 ## Known Issues
 - Old belinda/asher login is in public git history — harmless now (no such account)
 - New admins need their UID added to `firestore.rules` and redeployed
-- Firestore is publicly readable until rules are deployed (see Next Steps)
 - Manifest exists but no service worker → no full offline launch (deliberately out of scope)
 - `.DS_Store` committed
