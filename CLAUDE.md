@@ -39,33 +39,41 @@ Brain path: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Admin: image upload + crop/compress, set editor, JSON backup export/import
 
 ## Current Progress
-- v2 merged to main and pushed 2026-10-20 (live):health pass, Firebase Auth (each admin signs in with their own email),words as typed, speech + hold, phrase sets (Picture→Phrase, Phrase→Picture)
-- Spec: `docs/superpowers/specs/2026-10-18-word-match-v2-design.md`; plan: `docs/superpowers/plans/2026-10-18-word-match-v2.md`
-- Draft reply to Belinda: `docs/belinda-reply.md` (simple-language rewrite, not sent yet)
+- v2 live on main (2026-10-20): health pass, words as typed, speech + hold, phrase sets (Picture→Phrase, Phrase→Picture)
+- Admin login: real email + password (Joel, Belinda). First sign-in on a device unlocks family sets; after that 🔐 asks for the password only
+- Firestore rules deployed: only the two admin UIDs can read/write; anonymous read → 403; self sign-up disabled
+- Starter phrase set "Animals doing things" seeded in Firestore (emoji placeholders, no text)
+- Reply to Belinda ready: `docs/belinda-reply.txt` (paste into email; not sent yet)
 
-## Next Steps (rollout — order matters)
-- [x] Joel: enable Email/Password in Firebase console → Authentication
-- [x] Two admin accounts created (Joel + Belinda, real emails); rules allow only their UIDs
-- [x] Test sign-in locally, then merge to main + push (Pages goes live)
-- [ ] Belinda signs in once on every iPad (home-screen icon recommended); until then those iPads show built-ins only
-- [x] Rules deployed 2026-10-20 (Joel chose lock-now): anonymous REST read → 403; self sign-up disabled (ADMIN_ONLY_OPERATION)
-- [ ] Send Belinda the reply; test speech on a real iPad
-- [ ] Deferred minors from final review (see session log)
+## Next Steps
+1. Joel: send Belinda `docs/belinda-reply.txt`, and her password separately
+2. Belinda signs in once on every iPad — until then those iPads show built-in sets only (on-screen note tells her)
+3. Test speech + phrase modes on a real iPad (voice choice, emoji placeholder rendering, password-only admin box)
+4. When Belinda sends real phrase pictures: help her swap them into "Animals doing things"
+5. Optional: deferred minors — auth+Firestore timeouts can stack to ~13s; voiceschanged may not fire on iOS; import doesn't validate set shape; admin onclick uses raw set.id; offline cache silently stops past ~5MB; login error doesn't distinguish network failure
+6. Later: progress record idea (pending Belinda's reply)
 
 ## Session Log
+### 2026-10-20
+- Login switched to real email + password (two admin accounts); rules locked to the two UIDs and deployed
+- Text-free placeholder phrase pictures; seeded "Animals doing things" (custom_1792447007190) into production
+- Merged v2 to main, pushed, Pages live (v=9); password-only admin box once a device is signed in
+- Belinda reply rewritten in simple language + plain-text copy
+- Gotcha: Firebase project is owned by leojfx@gmail.com — CLI deploys need `--account leojfx@gmail.com`
+
 ### 2026-10-18
 - Created CLAUDE.md; health check found open Firestore (public read), small-set freeze, broken backup import, double-scoring
 - Brainstormed + specced + planned + built v2 (9 tasks, 32 unit tests, opus final review; 4 Important fixed)
 - Queued Night Rounds `public-repo-audit` (32 public repos, created Nov 2025–Mar 2026)
-- 2026-10-20: login switched to real email + password (two admin accounts); rules locked to the two UIDs
-- 2026-10-20: seeded "Animals doing things" phrase set into production Firestore (custom_1792447007190, 9 emoji placeholder pictures, no text) for Belinda to edit
-- Deferred minors: auth+Firestoretimeouts can stack to ~13s; voiceschanged may not fire on iOS; import doesn't validate set shape; admin onclick uses raw set.id; offline cache silently stops past ~5MB; login error doesn't distinguish network failure
 
 ## Key Decisions
 - Single-file vanilla app, no build step — keep it that way
+- Phrases are a set type inside the same app, not a separate app
+- Rules lock to UIDs, not emails (keeps Belinda's Gmail out of the public repo)
+- Locked rules before Belinda signed in on iPads (Joel's call; gap is self-explaining via the on-screen note)
 
 ## Known Issues
-- Old belinda/asher login is in public git history — harmless now (no such account)
 - New admins need their UID added to `firestore.rules` and redeployed
+- Old belinda/asher login is in public git history — harmless (no such account)
 - Manifest exists but no service worker → no full offline launch (deliberately out of scope)
 - `.DS_Store` committed

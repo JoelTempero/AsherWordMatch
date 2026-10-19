@@ -1,0 +1,59 @@
+Hi Belinda,
+
+So good to hear she's choosing it! I've worked through both your emails and the new version is now live.
+
+
+WHAT'S CHANGED
+
+- Capitals: words now show exactly how you type them, so names keep their capital letter. If you typed any words in capitals before, they'll show that way now, so it's worth a quick look through your sets.
+
+- Saying the word: when she gets a match right, the iPad says the word out loud. The picture and word stay on screen while it talks, then for a second or so, then it shuffles like before.
+
+- Tricky names: each word has a new box called "Say it like". For Hezekiah you could type "Hez-uh-KYE-uh". The word still shows as "Hezekiah". The box only changes how it sounds.
+
+- A clearer voice: the app uses the iPad's own voice. To make it sound more natural, on each iPad go to Settings > Accessibility > Spoken Content > Voices > English, and download an Australian or British voice marked "Enhanced" or "Premium". The app will pick it up by itself.
+
+
+TWO-WORD PHRASES
+
+I've added this to the same app, so there's nothing new to find. Everything is in one place.
+
+There are two ways to play. To switch between them, hold the lock button for 3 seconds.
+
+1. Picture > Phrase (this one comes up first): she sees a picture, taps the first word, then the second word. The iPad reads out the phrase, there's a little celebration, then the next one.
+
+2. Phrase > Picture: she reads a phrase like "cow running" and picks the right picture out of four. The other pictures are things like cow eating, dog running and dog eating, so she has to read both words to get it right.
+
+To get you started I've made a set called "Animals doing things": cows, dogs and cats eating, sleeping and running. The pictures are simple placeholders. Swap them for your own pictures, change the words, or add more phrases.
+
+
+ONE THING TO DO ON EACH IPAD (JUST ONCE)
+
+I've locked things down so only you can see the family photos. You now have your own login: your Gmail address and the password I'll send you separately.
+
+On each iPad, open the app, tap Login, and sign in with your email and password. After that the iPad remembers you. To get into the admin page later, tap Login and just type your password. Asher won't be able to get in. If you ever see "Family sets need the code" under the Login button, for example after a school reset, just sign in again.
+
+Tip: open the app from a home-screen icon instead of a Safari tab. In Safari, tap Share > Add to Home Screen. The iPad remembers your login better that way.
+
+Let me know once you've signed in on all the iPads and I'll finish the lock-down on my end.
+
+
+PICTURES FOR PHRASES (NO AUDIO NEEDED, THE IPAD READS THEM)
+
+If you're making more pictures, these work best:
+
+- Square, one clear thing happening, plain background
+- No words or letters in the picture
+- The same style for the whole set (ask ChatGPT to keep the same style)
+- Funny is great: a dog eating with a spoon, a cow in sneakers
+- Make every animal doing every action, like cow, dog and cat x eating, sleeping and running = 9 pictures. That's what lets the game set up the tricky choices.
+
+To add a set: Login > Add New Set > choose "Phrase set" > for each one, add the picture, the first word ("cow") and the second word ("running").
+
+
+AN IDEA FOR LATER
+
+You mentioned the school wanting a clearer way to see if she can read two words together. Down the track the app could keep a simple record, like which phrases she gets right first time and how that changes over the weeks, and you could show that to the school. Would that be useful? Happy to look at it once she's settled in.
+
+Cheers,
+Joel
