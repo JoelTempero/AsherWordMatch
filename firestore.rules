@@ -1,9 +1,10 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Only the signed-in family account can see or change card sets
+    // Only the two admin accounts (Joel, Belinda) can see or change card sets
     match /cardSets/{setId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null
+        && request.auth.uid in ['mhxyNZHmiOOvcPlP9uxbluY1C2W2', 'uy6rTj7u0CMN9WX8s7h4MyBpkPM2'];
     }
   }
 }

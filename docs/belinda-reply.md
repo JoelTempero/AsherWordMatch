@@ -13,7 +13,7 @@ So good to hear she's choosing it! Thanks for both emails. I've worked through e
 
 **One small setup step on each iPad**
 
-I've tightened things up so the family photos aren't open to anyone on the internet. On each iPad, tap 🔐 Login once and use the same login as always. After that the iPad stays signed in and Asher never sees it. If you ever see "Family sets need the code" under the Login button (e.g. after a school reset), just log in again.
+I've tightened things up so the family photos aren't open to anyone on the internet. You now have your own login: on each iPad, tap 🔐 Login once and sign in with your Gmail address and the password I'll send you separately. After that the iPad stays signed in and Asher never sees it. If you ever see "Family sets need the code" under the Login button (e.g. after a school reset), just log in again.
 
 Tip: if she plays from a **home-screen icon** (Share → Add to Home Screen) rather than a Safari tab, the iPad remembers the login much more reliably.
 

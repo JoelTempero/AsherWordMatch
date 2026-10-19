@@ -38,13 +38,13 @@ Brain path: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Admin: image upload + crop/compress, set editor, JSON backup export/import
 
 ## Current Progress
-- v2 built on branch `v2-health-speech-phrases` (NOT merged/live yet): health pass, Firebase Auth behind belinda/asher, words as typed, speech + hold, phrase sets (Picture→Phrase, Phrase→Picture)
+- v2 built on branch `v2-health-speech-phrases` (NOT merged/live yet): health pass, Firebase Auth (each admin signs in with their own email),words as typed, speech + hold, phrase sets (Picture→Phrase, Phrase→Picture)
 - Spec: `docs/superpowers/specs/2026-10-18-word-match-v2-design.md`; plan: `docs/superpowers/plans/2026-10-18-word-match-v2.md`
 - Draft reply to Belinda: `docs/belinda-reply.md` (not sent)
 
 ## Next Steps (rollout — order matters)
-- [ ] Joel: enable Email/Password in Firebase console → Authentication
-- [ ] Create account belinda@word-match-game-3c60d.firebaseapp.com / password "asher-wordmatch" (curl signUp in plan Task 4)
+- [x] Joel: enable Email/Password in Firebase console → Authentication
+- [x] Two admin accounts created (Joel + Belinda, real emails); rules allow only their UIDs
 - [ ] Test sign-in locally, then merge to main + push (Pages goes live)
 - [ ] Belinda signs in once on every iPad (home-screen icon recommended)
 - [ ] ONLY THEN deploy rules: `firebase deploy --only firestore:rules` → verify REST read returns 403
@@ -56,13 +56,15 @@ Brain path: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Created CLAUDE.md; health check found open Firestore (public read), small-set freeze, broken backup import, double-scoring
 - Brainstormed + specced + planned + built v2 (9 tasks, 32 unit tests, opus final review; 4 Important fixed)
 - Queued Night Rounds `public-repo-audit` (32 public repos, created Nov 2025–Mar 2026)
-- Deferred minors: auth+Firestore timeouts can stack to ~13s; voiceschanged may not fire on iOS; import doesn't validate set shape; admin onclick uses raw set.id; offline cache silently stops past ~5MB; login error doesn't distinguish network failure
+- 2026-10-20: login switched to real email + password (two admin accounts); rules locked to the two UIDs
+- Deferred minors: auth+Firestoretimeouts can stack to ~13s; voiceschanged may not fire on iOS; import doesn't validate set shape; admin onclick uses raw set.id; offline cache silently stops past ~5MB; login error doesn't distinguish network failure
 
 ## Key Decisions
 - Single-file vanilla app, no build step — keep it that way
 
 ## Known Issues
-- Login is belinda/asher (in public git history) — accepted: protection only stops casual visitors
+- Old belinda/asher login is in public git history — harmless now (no such account)
+- New admins need their UID added to `firestore.rules` and redeployed
 - Firestore is publicly readable until rules are deployed (see Next Steps)
 - Manifest exists but no service worker → no full offline launch (deliberately out of scope)
 - `.DS_Store` committed
