@@ -57,6 +57,7 @@ Brain path: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Brainstormed + specced + planned + built v2 (9 tasks, 32 unit tests, opus final review; 4 Important fixed)
 - Queued Night Rounds `public-repo-audit` (32 public repos, created Nov 2025–Mar 2026)
 - 2026-10-20: login switched to real email + password (two admin accounts); rules locked to the two UIDs
+- 2026-10-20: seeded "Animals doing things" phrase set into production Firestore (custom_1792447007190, 9 emoji placeholder pictures, no text) for Belinda to edit
 - Deferred minors: auth+Firestoretimeouts can stack to ~13s; voiceschanged may not fire on iOS; import doesn't validate set shape; admin onclick uses raw set.id; offline cache silently stops past ~5MB; login error doesn't distinguish network failure
 
 ## Key Decisions

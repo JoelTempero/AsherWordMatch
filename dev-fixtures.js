@@ -10,12 +10,21 @@
         return 'data:image/svg+xml,' + encodeURIComponent(svg);
     }
 
+    // Phrase picture: big animal with the action beside it - no words, so it has to be read
+    function phrasePic(animal, action, bg) {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="150" height="150">` +
+            `<rect width="150" height="150" rx="16" fill="${bg}"/>` +
+            `<text x="62" y="108" font-size="78" text-anchor="middle">${animal}</text>` +
+            `<text x="120" y="58" font-size="40" text-anchor="middle">${action}</text></svg>`;
+        return 'data:image/svg+xml,' + encodeURIComponent(svg);
+    }
+
     const animals = { cow: '🐄', dog: '🐕', cat: '🐈' };
-    const actions = { eating: ['🍽️', '#FFE0B2'], sleeping: ['💤', '#D1C4E9'], running: ['👟', '#C8E6C9'] };
+    const actions = { eating: ['🍽️', '#FFE0B2'], sleeping: ['💤', '#D1C4E9'], running: ['💨', '#C8E6C9'] };
     const items = [];
     for (const [first, a] of Object.entries(animals)) {
         for (const [second, [b, bg]] of Object.entries(actions)) {
-            items.push({ image: pic(a + b, `${first} ${second}`, bg), first, second });
+            items.push({ image: phrasePic(a, b, bg), first, second });
         }
     }
 
