@@ -26,7 +26,7 @@ To get you started I've made a set called **"Animals doing things"**: cows, dogs
 
 I've locked things down so only you can see the family photos. You now have your own login: your Gmail address and the password I'll send you separately.
 
-On each iPad, open the app, tap 🔐 Login, and sign in with your email and password. After that the iPad remembers you. To get into the admin page later, tap 🔐 Login and just type your password. Asher won't be able to get in.If you ever see "Family sets need the code" under the Login button, for example after a school reset, just sign in again.
+On each iPad, open the app, tap 🔐 Login, and sign in with your email and password. After that the iPad remembers you. To get into the admin page later, tap 🔐 Login and just type your password. Asher won't be able to get in. If you ever see "Family sets need the code" under the Login button, for example after a school reset, just sign in again.
 
 Tip: open the app from a home-screen icon instead of a Safari tab. In Safari, tap Share → Add to Home Screen. The iPad remembers your login better that way.
 
