@@ -60,11 +60,11 @@ function estimateSetBytes(set) {
     return new TextEncoder().encode(JSON.stringify(set)).length;
 }
 
-// The login screen stays username/password; Firebase needs an email and 6+ char password
-function toFirebaseCredentials(username, password) {
+// Admins sign in with their real email; the password is used exactly as typed
+function toFirebaseCredentials(email, password) {
     return {
-        email: `${username.trim().toLowerCase()}@word-match-game-3c60d.firebaseapp.com`,
-        password: password + '-wordmatch'
+        email: email.trim().toLowerCase(),
+        password
     };
 }
 

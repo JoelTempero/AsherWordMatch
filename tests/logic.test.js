@@ -59,10 +59,10 @@ test('set size limits', () => {
 });
 
 // --- Task 4 ---
-test('toFirebaseCredentials maps the existing login', () => {
-    assert.deepEqual(L.toFirebaseCredentials(' Belinda ', 'asher'), {
-        email: 'belinda@word-match-game-3c60d.firebaseapp.com',
-        password: 'asher-wordmatch'
+test('toFirebaseCredentials tidies the email and keeps the password exactly', () => {
+    assert.deepEqual(L.toFirebaseCredentials(' Joel@Tempero.NZ ', ' Pass word '), {
+        email: 'joel@tempero.nz',
+        password: ' Pass word '
     });
 });
 
