@@ -961,10 +961,18 @@ function showComplete() {
 
 // Login functionality
 function showLoginModal() {
+    // Once this iPad is signed in, only the password is needed to open admin
+    const user = auth && auth.currentUser;
+    const signedInAs = document.getElementById('signedInAs');
+    signedInAs.hidden = !user;
+    signedInAs.textContent = user ? `Signed in as ${user.email}` : '';
+    document.getElementById('emailGroup').hidden = !!user;
+
     loginModal.classList.add('active');
     document.getElementById('usernameInput').value = '';
     document.getElementById('passwordInput').value = '';
     document.getElementById('loginError').style.display = 'none';
+    document.getElementById(user ? 'passwordInput' : 'usernameInput').focus();
 }
 
 function hideLoginModal() {
@@ -973,9 +981,9 @@ function hideLoginModal() {
 
 // First sign-in on a device unlocks the family sets; after that the code opens admin
 async function attemptLogin() {
-    const username = document.getElementById('usernameInput').value;
-    const password = document.getElementById('passwordInput').value;
     const wasSignedIn = !!(auth && auth.currentUser);
+    const username = wasSignedIn ? auth.currentUser.email : document.getElementById('usernameInput').value;
+    const password = document.getElementById('passwordInput').value;
 
     try {
         if (!auth) throw new Error('Firebase unavailable');

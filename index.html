@@ -518,6 +518,14 @@
             margin-bottom: 15px;
         }
 
+        .signed-in-as {
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+            color: #666;
+            text-align: center;
+            overflow-wrap: anywhere;
+        }
+
         .form-group label {
             display: block;
             font-weight: 600;
@@ -1010,7 +1018,8 @@
     <div class="modal-overlay" id="loginModal">
         <div class="modal">
             <h2>🔐 Admin Login</h2>
-            <div class="form-group">
+            <p class="signed-in-as" id="signedInAs" hidden></p>
+            <div class="form-group" id="emailGroup">
                 <label>Email</label>
                 <input type="email" id="usernameInput" autocomplete="username" autocapitalize="off" spellcheck="false">
             </div>
@@ -1097,7 +1106,7 @@
         </div>
     </div>
 
-    <script src="logic.js?v=8"></script>
-    <script src="app.js?v=8"></script>
+    <script src="logic.js?v=9"></script>
+    <script src="app.js?v=9"></script>
 </body>
 </html>
