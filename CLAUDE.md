@@ -44,10 +44,10 @@ Brain path: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Admin login: real email + password (Joel, Belinda). Sign-in is only needed to edit; 🔐 asks for the password only once a device is signed in
 - Firestore rules deployed 2026-10-25: anyone can read cardSets + images (anon read 200, anon write 403); only the two admin UIDs can write
 - Starter phrase set "Animals doing things" (custom_1792447007190) in Firestore — Belinda has ~24 phrases in it, all at the old 150px size (need re-upload to be sharp)
-- Reply to Belinda ready: `docs/belinda-reply-2.txt` (not sent)
+- Reply to Belinda sent 2026-10-25 (Joel's revised version of `docs/belinda-reply-2.txt`); waiting on her response
 
 ## Next Steps
-1. Joel: send Belinda `docs/belinda-reply-2.txt`
+1. Waiting on Belinda's reply (round 3 likely)
 2. Belinda: re-upload her phrase pictures (old ones were saved at 150px); send iPad mini models + iOS versions; report the new login error text if sign-in still fails
 3. Test on a real iPad: side layout at portrait width, say-twice timing, offline play after first load, admin edit on a set that's been split
 4. If Belinda's mini is iOS 12: confirm Firebase SDK 10.7.1 actually runs there (syntax is clean now; SDK support untested)
