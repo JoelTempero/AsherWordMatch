@@ -1,9 +1,18 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Only the two admin accounts (Joel, Belinda) can see or change card sets
+    // Anyone can play the family sets (so old / un-signed-in iPads work at school);
+    // only the two admin accounts (Joel, Belinda) can change them
     match /cardSets/{setId} {
-      allow read, write: if request.auth != null
+      allow read: if true;
+      allow write: if isAdmin();
+      match /images/{imageId} {
+        allow read: if true;
+        allow write: if isAdmin();
+      }
+    }
+    function isAdmin() {
+      return request.auth != null
         && request.auth.uid in ['mhxyNZHmiOOvcPlP9uxbluY1C2W2', 'uy6rTj7u0CMN9WX8s7h4MyBpkPM2'];
     }
   }

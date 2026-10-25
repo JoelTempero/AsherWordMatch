@@ -39,21 +39,28 @@ Brain path: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Admin: image upload + crop/compress, set editor, JSON backup export/import
 
 ## Current Progress
-- v2 live on main (2026-10-20): health pass, words as typed, speech + hold, phrase sets (Picture→Phrase, Phrase→Picture)
-- Admin login: real email + password (Joel, Belinda). First sign-in on a device unlocks family sets; after that 🔐 asks for the password only
-- Firestore rules deployed: only the two admin UIDs can read/write; anonymous read → 403; self sign-up disabled
-- Starter phrase set "Animals doing things" seeded in Firestore (emoji placeholders, no text)
-- Reply to Belinda ready: `docs/belinda-reply.txt` (paste into email; not sent yet)
+- v2.1 (2026-10-25, v=10): Belinda round 2 — pictures stored per-doc at 600px, say-twice hold, 4-choice side layout, public read, `?set=<id>` direct link, iOS 12 syntax/CSS fallbacks, login error by cause
+- Image storage: uploaded pictures live in `cardSets/{setId}/images/{key}` (`{data: dataURL}`); set doc holds `img:<key>`; `splitSetImages`/`hydrateSetImages` in logic.js; Firestore persistence (IndexedDB) caches offline; localStorage keeps stripped set docs only. Old inline-image sets still work and split on next save
+- Admin login: real email + password (Joel, Belinda). Sign-in is only needed to edit; 🔐 asks for the password only once a device is signed in
+- Firestore rules deployed 2026-10-25: anyone can read cardSets + images (anon read 200, anon write 403); only the two admin UIDs can write
+- Starter phrase set "Animals doing things" (custom_1792447007190) in Firestore — Belinda has ~24 phrases in it, all at the old 150px size (need re-upload to be sharp)
+- Reply to Belinda ready: `docs/belinda-reply-2.txt` (not sent)
 
 ## Next Steps
-1. Joel: send Belinda `docs/belinda-reply.txt`, and her password separately
-2. Belinda signs in once on every iPad — until then those iPads show built-in sets only (on-screen note tells her)
-3. Test speech + phrase modes on a real iPad (voice choice, emoji placeholder rendering, password-only admin box)
-4. When Belinda sends real phrase pictures: help her swap them into "Animals doing things"
-5. Optional: deferred minors — auth+Firestore timeouts can stack to ~13s; voiceschanged may not fire on iOS; import doesn't validate set shape; admin onclick uses raw set.id; offline cache silently stops past ~5MB; login error doesn't distinguish network failure
-6. Later: progress record idea (pending Belinda's reply)
+1. Joel: send Belinda `docs/belinda-reply-2.txt`
+2. Belinda: re-upload her phrase pictures (old ones were saved at 150px); send iPad mini models + iOS versions; report the new login error text if sign-in still fails
+3. Test on a real iPad: side layout at portrait width, say-twice timing, offline play after first load, admin edit on a set that's been split
+4. If Belinda's mini is iOS 12: confirm Firebase SDK 10.7.1 actually runs there (syntax is clean now; SDK support untested)
+5. Optional deferred minors — auth+Firestore timeouts can stack; voiceschanged may not fire on iOS; import doesn't validate set shape; admin onclick uses raw set.id; `.phrase-main-picture` height fallback on iOS 12 phones is fixed 320px
+6. Later: progress record idea; raise choices from 4 when Belinda asks
 
 ## Session Log
+### 2026-10-25
+- Belinda round 2 (combined email): blur root cause = 150px crop output; fixed with per-image Firestore docs (600px q0.85) + persistence; rules opened to public read (Joel's call)
+- Say-twice completion (2s/1s), phrase-build 3-column layout with 4 big nowrap choices (2×2 under picture on phones), `?set=` link, iOS 12 cleanup (`??`/`?.`, clamp/aspect-ratio fallbacks), login error messages
+- Verified real save/hydrate/re-save/delete round trip against production with a throwaway set from the signed-in localhost tab; 41 unit tests green
+- Plan: `docs/superpowers/plans/2026-10-25-belinda-round-2.md`
+
 ### 2026-10-20
 - Login switched to real email + password (two admin accounts); rules locked to the two UIDs and deployed
 - Text-free placeholder phrase pictures; seeded "Animals doing things" (custom_1792447007190) into production

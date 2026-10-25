@@ -29,6 +29,12 @@ async function loadFirebase() {
         firebase.initializeApp(firebaseConfig);
         db = firebase.firestore();
         auth = firebase.auth();
+        // Keep sets and pictures on the device (IndexedDB) so the game works offline
+        try {
+            await db.enablePersistence({ synchronizeTabs: true });
+        } catch (e) {
+            console.warn('Offline persistence unavailable:', e && e.code);
+        }
     } catch (e) {
         console.warn('Firebase unavailable - using built-in and cached sets:', e);
     }
@@ -216,12 +222,74 @@ function isDevSet(setId) {
 }
 
 // Keep an offline copy of the sets on this device
+// Offline copy of the set list (pictures stripped out - Firestore persistence holds those)
 function cacheSetsLocally() {
     try {
-        const realSets = customSetsCache.filter(s => !isDevSet(s.id));
+        const realSets = customSetsCache.filter(s => !isDevSet(s.id)).map(s => splitSetImages(s).doc);
         localStorage.setItem('wordMatchCustomSets', JSON.stringify(realSets));
     } catch (e) {
         console.warn('Could not cache sets locally:', e);
+    }
+}
+
+// --- Pictures (cardSets/{setId}/images/{key}) ---
+const imageLoads = {}; // setId -> in-flight promise
+
+function imagesRef(setId) {
+    return db.collection('cardSets').doc(setId).collection('images');
+}
+
+// Make sure a set has its pictures loaded (no-op for built-ins and already-hydrated sets)
+function loadSetImages(set) {
+    if (!set || !needsImages(set)) return Promise.resolve(set);
+    if (!db) return Promise.resolve(set);
+    if (imageLoads[set.id]) return imageLoads[set.id];
+
+    imageLoads[set.id] = (async () => {
+        try {
+            const snapshot = await withTimeout(imagesRef(set.id).get(), 20000);
+            const images = {};
+            snapshot.forEach(doc => { images[doc.id] = doc.data().data; });
+            const hydrated = hydrateSetImages(set, images);
+            const index = customSetsCache.findIndex(s => s.id === set.id);
+            if (index !== -1) customSetsCache[index] = hydrated;
+            return hydrated;
+        } catch (e) {
+            console.error('Could not load pictures for', set.id, e);
+            return set;
+        } finally {
+            delete imageLoads[set.id];
+        }
+    })();
+    return imageLoads[set.id];
+}
+
+// Quietly fetch every set's pictures after startup so the first tap is instant
+async function warmSetImages() {
+    for (const set of customSetsCache.slice()) {
+        if (needsImages(set)) await loadSetImages(set);
+    }
+}
+
+// Write pictures in chunks (Firestore batches cap at 500 ops / 10MB)
+async function writeImages(setId, images) {
+    const keys = Object.keys(images);
+    for (let i = 0; i < keys.length; i += 10) {
+        const batch = db.batch();
+        keys.slice(i, i + 10).forEach(key => batch.set(imagesRef(setId).doc(key), { data: images[key] }));
+        await batch.commit();
+    }
+}
+
+// Remove picture docs the set no longer points at
+async function deleteImagesExcept(setId, keepKeys) {
+    const snapshot = await imagesRef(setId).get();
+    const stale = [];
+    snapshot.forEach(doc => { if (!keepKeys.includes(doc.id)) stale.push(doc.ref); });
+    for (let i = 0; i < stale.length; i += 400) {
+        const batch = db.batch();
+        stale.slice(i, i + 400).forEach(ref => batch.delete(ref));
+        await batch.commit();
     }
 }
 
@@ -257,30 +325,38 @@ async function loadCustomSetsFromFirebase() {
     return customSetsCache;
 }
 
-// Save a single set to Firebase
+// Save a single set to Firebase: pictures first, then the (small) set doc, then tidy old pictures
 async function saveSetToFirebase(set) {
     if (isDevSet(set.id)) {
         alert('Dev test sets are never saved.');
         return false;
     }
+    const { doc, images } = splitSetImages(set);
     try {
         if (!db) throw new Error('No connection to Firebase');
-        await db.collection('cardSets').doc(set.id).set(set);
+        await writeImages(set.id, images);
+        await db.collection('cardSets').doc(set.id).set(doc);
+        await deleteImagesExcept(set.id, Object.keys(images));
     } catch (e) {
         console.error('Error saving to Firebase:', e);
         alert('Error saving: ' + e.message + '\nChanges kept on this iPad only.');
         cacheSetsLocally();
         return false;
     }
+    // Keep the in-memory copy hydrated, with the keys the pictures were stored under
+    const hydrated = hydrateSetImages(doc, images);
+    const index = customSetsCache.findIndex(s => s.id === set.id);
+    if (index !== -1) customSetsCache[index] = hydrated;
     cacheSetsLocally();
     return true;
 }
 
-// Delete a set from Firebase
+// Delete a set (and its pictures) from Firebase
 async function deleteSetFromFirebase(setId) {
     if (isDevSet(setId)) return false;
     try {
         if (!db) throw new Error('No connection to Firebase');
+        await deleteImagesExcept(setId, []);
         await db.collection('cardSets').doc(setId).delete();
     } catch (e) {
         console.error('Error deleting from Firebase:', e);
@@ -375,6 +451,8 @@ async function init() {
         await loadCustomSetsFromFirebase();
         renderSetList();
         console.log('Initialization complete!');
+        openSetFromUrl();
+        warmSetImages();
     } catch (e) {
         console.error('Init error:', e);
         updateFamilyNote();
@@ -581,10 +659,24 @@ async function showMenu() {
 }
 
 // Start a game with selected set
-function startGame(setId) {
+// ?set=<id> opens straight into that set (save the link to the home screen for school)
+function openSetFromUrl() {
+    const setId = new URLSearchParams(location.search).get('set');
+    if (setId && getAllSets().some(s => s.id === setId)) startGame(setId);
+}
+
+async function startGame(setId) {
     const sets = getAllSets();
-    const set = sets.find(s => s.id === setId);
+    let set = sets.find(s => s.id === setId);
     if (!set) return;
+
+    // First open on this device: fetch the pictures (cached offline after that)
+    if (needsImages(set)) {
+        const card = setList.querySelector(`.set-card[data-set-id="${CSS.escape(setId)}"]`);
+        if (card) card.classList.add('loading');
+        set = await loadSetImages(set);
+        if (card) card.classList.remove('loading');
+    }
 
     // Phrase sets and word sets have their own modes
     if (isPhraseSet(set) && !isPhraseMode(gameState.gameMode)) {
@@ -780,7 +872,7 @@ function endDrag(e) {
 
     // Check which cell was dropped on
     const dropTarget = document.elementFromPoint(point.clientX, point.clientY);
-    const targetCell = dropTarget?.closest('.word-cell');
+    const targetCell = dropTarget && dropTarget.closest('.word-cell');
     if (targetCell) {
         handleDrop(targetCell, targetCell.dataset.correct === 'true');
     }
@@ -871,16 +963,20 @@ function renderPhraseRound() {
         return;
     }
 
+    // Picture + slots in the middle, two big word cards either side
     gameGrid.innerHTML = `
-        <div class="phrase-round">
-            <div class="grid-cell phrase-main-picture">
-                <img src="${escapeHtml(item.image)}" alt="" onerror="imgFallback(this)">
+        <div class="phrase-round phrase-build">
+            <div class="phrase-choices" id="phraseChoicesLeft"></div>
+            <div class="phrase-centre">
+                <div class="grid-cell phrase-main-picture">
+                    <img src="${escapeHtml(item.image)}" alt="" onerror="imgFallback(this)">
+                </div>
+                <div class="phrase-slots">
+                    <span class="phrase-slot" id="phraseSlotFirst"></span>
+                    <span class="phrase-slot" id="phraseSlotSecond"></span>
+                </div>
             </div>
-            <div class="phrase-slots">
-                <span class="phrase-slot" id="phraseSlotFirst"></span>
-                <span class="phrase-slot" id="phraseSlotSecond"></span>
-            </div>
-            <div class="phrase-choices" id="phraseChoices"></div>
+            <div class="phrase-choices" id="phraseChoicesRight"></div>
         </div>
     `;
     renderPhraseChoices('first');
@@ -889,12 +985,25 @@ function renderPhraseRound() {
 function renderPhraseChoices(slot) {
     const item = gameState.wordsToPlay[gameState.currentWordIndex];
     const choices = buildChoices(gameState.currentSet.items, item, slot);
-    const container = document.getElementById('phraseChoices');
-    container.innerHTML = choices.map(choice => `
-        <button class="grid-cell phrase-choice">${escapeHtml(choice)}</button>
-    `).join('');
-    container.querySelectorAll('.phrase-choice').forEach((btn, i) => {
-        btn.addEventListener('click', () => choosePhraseWord(btn, slot, choices[i]));
+    const half = Math.ceil(choices.length / 2);
+    const columns = [
+        [document.getElementById('phraseChoicesLeft'), choices.slice(0, half)],
+        [document.getElementById('phraseChoicesRight'), choices.slice(half)]
+    ];
+    columns.forEach(([container, words]) => {
+        container.innerHTML = words.map(choice => `
+            <button class="grid-cell phrase-choice">${escapeHtml(choice)}</button>
+        `).join('');
+        container.querySelectorAll('.phrase-choice').forEach((btn, i) => {
+            btn.addEventListener('click', () => choosePhraseWord(btn, slot, words[i]));
+        });
+    });
+}
+
+function clearPhraseChoices() {
+    ['phraseChoicesLeft', 'phraseChoicesRight'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.innerHTML = '';
     });
 }
 
@@ -914,7 +1023,7 @@ function choosePhraseWord(btn, slot, choice) {
         renderPhraseChoices('second');
         return;
     }
-    document.getElementById('phraseChoices').innerHTML = '';
+    clearPhraseChoices();
     completePhraseRound(document.querySelector('.phrase-main-picture'));
 }
 
@@ -927,7 +1036,8 @@ function pickPhrasePicture(btn, isCorrect) {
     }
 }
 
-// Celebrate, say the whole phrase (inside the tap, for iOS), hold, then move on
+// Celebrate, say the whole phrase (inside the tap, for iOS), pause, say it again, then move on.
+// Picture and both words stay on screen the whole time so she can repeat it.
 function completePhraseRound(cell) {
     gameState.roundLocked = true;
     cell.classList.add('correct');
@@ -937,8 +1047,8 @@ function completePhraseRound(cell) {
     const item = gameState.wordsToPlay[gameState.currentWordIndex];
     const text = spokenText({ word: phraseText(item), say: item.say });
     const advance = onlyIfCurrent(gameState.roundSeq, () => gameState.roundSeq, advanceRound);
-    if (!speakAndThen(text, advance)) {
-        setTimeout(advance, 2000);
+    if (!sayTwiceThen(text, advance, { synth: window.speechSynthesis || null, voice: speechVoice })) {
+        setTimeout(advance, 4000);
     }
 }
 
@@ -979,6 +1089,18 @@ function hideLoginModal() {
     loginModal.classList.remove('active');
 }
 
+// Tell wrong password apart from "this iPad can't reach Firebase" (old iOS, school wifi filter)
+function loginErrorMessage(e) {
+    const code = (e && e.code) || '';
+    if (!auth) return 'Can\'t reach the sign-in service on this iPad. Check the internet connection, or try a newer iPad.';
+    if (code === 'auth/network-request-failed') return 'No internet connection - check the wifi and try again.';
+    if (code === 'auth/too-many-requests') return 'Too many tries - wait a few minutes and try again.';
+    if (code === 'auth/wrong-password' || code === 'auth/user-not-found' || code === 'auth/invalid-credential' || code === 'auth/invalid-email') {
+        return 'Wrong email or password';
+    }
+    return 'Sign-in failed (' + (code || (e && e.message) || 'unknown error') + ')';
+}
+
 // First sign-in on a device unlocks the family sets; after that the code opens admin
 async function attemptLogin() {
     const wasSignedIn = !!(auth && auth.currentUser);
@@ -991,7 +1113,9 @@ async function attemptLogin() {
         await auth.signInWithEmailAndPassword(creds.email, creds.password);
     } catch (e) {
         console.error('Login failed:', e);
-        document.getElementById('loginError').style.display = 'block';
+        const errorEl = document.getElementById('loginError');
+        errorEl.textContent = loginErrorMessage(e);
+        errorEl.style.display = 'block';
         return;
     }
 
@@ -1059,16 +1183,16 @@ function changeSetType(type) {
     renderWordList();
 }
 
-function showEditSetModal(setId = null) {
+async function showEditSetModal(setId = null) {
     editingSetId = setId;
     const modal = document.getElementById('editSetModal');
     const title = document.getElementById('editSetTitle');
     const nameInput = document.getElementById('setNameInput');
 
     if (setId) {
-        // Editing existing set - find it from all sets
+        // Editing existing set - find it from all sets (with its pictures loaded)
         const allSets = getAllSets();
-        const set = allSets.find(s => s.id === setId);
+        const set = await loadSetImages(allSets.find(s => s.id === setId));
         if (set) {
             title.textContent = 'Edit Card Set';
             nameInput.value = set.name;
@@ -1303,7 +1427,7 @@ function setupCropEvents() {
 function applyCrop() {
     const img = document.getElementById('cropImage');
     const containerSize = 280;
-    const outputSize = 150; // Smaller output for better storage (150x150 is plenty for game)
+    const outputSize = 600; // Sharp on a retina iPad (main picture shows at ~280 CSS px = 560 device px)
     
     const canvas = document.createElement('canvas');
     canvas.width = outputSize;
@@ -1321,8 +1445,8 @@ function applyCrop() {
         0, 0, outputSize, outputSize
     );
     
-    // Compress to JPEG at 75% quality - keeps file size small
-    const croppedImage = canvas.toDataURL('image/jpeg', 0.75);
+    // JPEG at 85% - sharp faces, still ~50-100KB per picture
+    const croppedImage = canvas.toDataURL('image/jpeg', 0.85);
     editingWords[cropState.imageIndex].image = croppedImage;
     
     document.getElementById('cropModal').classList.remove('active');
@@ -1367,14 +1491,20 @@ async function saveSet() {
             : { id: id, name: name, words: validWords };
     }
 
-    // Firestore docs max out at 1MB (pictures are stored inside the set)
-    const bytes = estimateSetBytes(setToSave);
+    // Firestore docs max out at 1MB; pictures are stored one per doc, so check each part
+    const { doc, images } = splitSetImages(setToSave);
+    const bytes = estimateSetBytes(doc);
     const kb = Math.round(bytes / 1000);
     if (bytes > SET_MAX_BYTES) {
         alert(`This set is too large to save (${kb} KB of 1000 KB). Try splitting it into two sets.`);
         return;
     }
     if (bytes > SET_WARN_BYTES && !confirm(`This set is getting very large (${kb} KB of 1000 KB). Save anyway?`)) {
+        return;
+    }
+    const bigPicture = Object.values(images).find(img => img.length > SET_MAX_BYTES);
+    if (bigPicture) {
+        alert('One of the pictures is too large to save. Please crop it again.');
         return;
     }
 
@@ -1419,14 +1549,18 @@ window.handleImageUpload = handleImageUpload;
 window.removeWord = removeWord;
 
 // Export backup - downloads custom sets as JSON file
-function exportBackup() {
-    const customSets = getCustomSets();
-    
-    if (customSets.length === 0) {
+async function exportBackup() {
+    if (getCustomSets().length === 0) {
         alert('No custom card sets to export!');
         return;
     }
-    
+
+    // Pictures go inline in the file so a backup is self-contained
+    const customSets = [];
+    for (const set of getCustomSets()) {
+        customSets.push(await loadSetImages(set));
+    }
+
     const backup = {
         version: 1,
         exportDate: new Date().toISOString(),

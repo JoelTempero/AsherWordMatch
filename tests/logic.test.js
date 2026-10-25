@@ -266,3 +266,94 @@ test('onlyIfCurrent drops callbacks from an old round', () => {
     L.onlyIfCurrent(seq, () => seq, () => ran++)();
     assert.equal(ran, 1);
 });
+
+// --- Round 2 (2026-10-25) ---
+const twelve = [];
+for (const a of ['cow', 'dog', 'cat', 'pig']) for (const b of ['eating', 'sleeping', 'running', 'jumping']) twelve.push(p(a, b));
+
+test('buildChoices defaults to 4 distinct choices including the target', () => {
+    for (let i = 0; i < 20; i++) {
+        const c = L.buildChoices(twelve, twelve[0], 'second');
+        assert.equal(c.length, 4);
+        assert.equal(new Set(c).size, 4);
+        assert.ok(c.includes('eating'));
+    }
+});
+
+test('speakThen honours a custom hold after speech', () => {
+    const env = fakeEnv();
+    let calls = 0;
+    L.speakThen('dog', () => calls++, { ...env, holdMs: 2000 });
+    env.synth.spoken[0].onend();
+    env.advance(1999); assert.equal(calls, 0);
+    env.advance(1); assert.equal(calls, 1);
+});
+
+test('sayTwiceThen: say, 2s, say again, 1s, done', () => {
+    const env = fakeEnv();
+    let calls = 0;
+    assert.equal(L.sayTwiceThen('cow running', () => calls++, env), true);
+    assert.equal(env.synth.spoken.length, 1);
+    env.synth.spoken[0].onend();
+    env.advance(1999); assert.equal(env.synth.spoken.length, 1);
+    env.advance(1); assert.equal(env.synth.spoken.length, 2);
+    assert.equal(env.synth.spoken[1].text, 'cow running');
+    env.synth.spoken[1].onend();
+    env.advance(999); assert.equal(calls, 0);
+    env.advance(1); assert.equal(calls, 1);
+    env.advance(10000); assert.equal(calls, 1);
+});
+
+test('sayTwiceThen without synth returns false', () => {
+    assert.equal(L.sayTwiceThen('x', () => {}, { synth: null }), false);
+});
+
+// Image storage: pictures move out of the set doc into cardSets/{id}/images/{key}
+const DATA = 'data:image/jpeg;base64,AAAA';
+test('isImageRef recognises img: refs only', () => {
+    assert.equal(L.isImageRef('img:abc'), true);
+    assert.equal(L.isImageRef(DATA), false);
+    assert.equal(L.isImageRef('images/words/cat.png'), false);
+    assert.equal(L.isImageRef(undefined), false);
+});
+
+test('splitSetImages moves data URLs out, keeps paths, reuses keys', () => {
+    let n = 0;
+    const newKey = () => 'k' + (++n);
+    const set = { id: 's1', name: 'S', type: 'phrase', items: [
+        { first: 'cow', second: 'eating', image: DATA },
+        { first: 'dog', second: 'eating', image: DATA + 'B', imageKey: 'old' },
+        { first: 'cat', second: 'eating', image: 'images/words/cat.png' },
+        { first: 'pig', second: 'eating', image: 'img:k9' },
+    ] };
+    const { doc, images } = L.splitSetImages(set, newKey);
+    assert.deepEqual(doc.items.map(i => i.image), ['img:k1', 'img:old', 'images/words/cat.png', 'img:k9']);
+    assert.ok(doc.items.every(i => !('imageKey' in i)));
+    assert.deepEqual(images, { k1: DATA, old: DATA + 'B' });
+    assert.equal(doc.name, 'S');
+    assert.equal(set.items[0].image, DATA, 'input untouched');
+});
+
+test('splitSetImages works for word sets', () => {
+    const { doc, images } = L.splitSetImages({ id: 'w', name: 'W', words: [{ word: 'a', image: DATA }] }, () => 'z');
+    assert.equal(doc.words[0].image, 'img:z');
+    assert.deepEqual(images, { z: DATA });
+});
+
+test('hydrateSetImages resolves refs and remembers the key', () => {
+    const doc = { id: 's1', name: 'S', type: 'phrase', items: [
+        { first: 'cow', second: 'eating', image: 'img:k1' },
+        { first: 'cat', second: 'eating', image: 'images/words/cat.png' },
+        { first: 'pig', second: 'eating', image: 'img:missing' },
+    ] };
+    const set = L.hydrateSetImages(doc, { k1: DATA });
+    assert.deepEqual(set.items[0], { first: 'cow', second: 'eating', image: DATA, imageKey: 'k1' });
+    assert.deepEqual(set.items[1], { first: 'cat', second: 'eating', image: 'images/words/cat.png' });
+    assert.equal(set.items[2].image, 'img:missing');
+    assert.equal(doc.items[0].image, 'img:k1', 'input untouched');
+});
+
+test('needsImages is true only while refs are unresolved', () => {
+    assert.equal(L.needsImages({ items: [{ image: 'img:a' }] }), true);
+    assert.equal(L.needsImages({ words: [{ image: DATA }, { image: 'x.png' }] }), false);
+});

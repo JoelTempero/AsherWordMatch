@@ -12,7 +12,7 @@ function shuffleArray(array) {
 
 // Escape text before it goes into innerHTML or an attribute
 function escapeHtml(str) {
-    return String(str ?? '')
+    return String(str == null ? '' : str)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -22,7 +22,7 @@ function escapeHtml(str) {
 
 // Words count as the same if they only differ by capitals or spaces ("Mum " / "mum")
 function wordKey(word) {
-    return String(word ?? '').trim().toLowerCase();
+    return String(word == null ? '' : word).trim().toLowerCase();
 }
 
 function sameWord(a, b) {
@@ -60,6 +60,58 @@ function estimateSetBytes(set) {
     return new TextEncoder().encode(JSON.stringify(set)).length;
 }
 
+// --- Image storage ---
+// Uploaded pictures (data URLs) are stored one per doc in cardSets/{setId}/images/{key},
+// and the set doc points at them with "img:<key>". Built-in file paths stay inline.
+const IMAGE_REF = 'img:';
+
+function isImageRef(image) {
+    return typeof image === 'string' && image.indexOf(IMAGE_REF) === 0;
+}
+
+function isDataUrl(image) {
+    return typeof image === 'string' && image.indexOf('data:') === 0;
+}
+
+function setEntryList(set) {
+    return set.items ? 'items' : 'words';
+}
+
+function defaultImageKey() {
+    return 'i' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+// Split a set into the small doc to store plus { key: dataUrl } for its pictures.
+// Existing pictures keep their key (entry.imageKey) so re-saving doesn't rewrite them.
+function splitSetImages(set, newKey = defaultImageKey) {
+    const list = setEntryList(set);
+    const images = {};
+    const entries = (set[list] || []).map(entry => {
+        const { imageKey, ...rest } = entry;
+        if (!isDataUrl(entry.image)) return rest;
+        const key = imageKey || newKey();
+        images[key] = entry.image;
+        return { ...rest, image: IMAGE_REF + key };
+    });
+    return { doc: { ...set, [list]: entries }, images };
+}
+
+// Put the pictures back into a stored doc; unknown refs are left as-is (they fall back to grey)
+function hydrateSetImages(doc, images) {
+    const list = setEntryList(doc);
+    const entries = (doc[list] || []).map(entry => {
+        if (!isImageRef(entry.image)) return entry;
+        const key = entry.image.slice(IMAGE_REF.length);
+        if (!(key in images)) return entry;
+        return { ...entry, image: images[key], imageKey: key };
+    });
+    return { ...doc, [list]: entries };
+}
+
+function needsImages(set) {
+    return (set[setEntryList(set)] || []).some(entry => isImageRef(entry.image));
+}
+
 // Admins sign in with their real email; the password is used exactly as typed
 function toFirebaseCredentials(email, password) {
     return {
@@ -89,7 +141,7 @@ function distinctWords(values) {
 }
 
 // Word choices for one slot ('first' | 'second'): the right word plus up to n-1 others from the set
-function buildChoices(items, target, slot, n = 3) {
+function buildChoices(items, target, slot, n = 4) {
     const others = shuffleArray(distinctWords(items.map(it => it[slot])).filter(v => !sameWord(v, target[slot])));
     return shuffleArray([target[slot], ...others.slice(0, n - 1)]);
 }
@@ -150,9 +202,9 @@ function spokenText(entry) {
     return say || entry.word;
 }
 
-// Speak text, then call done once: 1.5s after speech ends, or after 4s if iOS never reports the end.
+// Speak text, then call done once: holdMs (1.5s) after speech ends, or after 4s if iOS never reports the end.
 // Returns false (and never calls done) when speech isn't available.
-function speakThen(text, done, { synth, voice = null, wait = setTimeout, clear = clearTimeout } = {}) {
+function speakThen(text, done, { synth, voice = null, wait = setTimeout, clear = clearTimeout, holdMs = HOLD_AFTER_SPEECH_MS } = {}) {
     if (!synth) return false;
     let finished = false;
     const finish = () => {
@@ -164,7 +216,7 @@ function speakThen(text, done, { synth, voice = null, wait = setTimeout, clear =
     const ended = () => {
         if (finished) return;
         clear(fallback);
-        wait(finish, HOLD_AFTER_SPEECH_MS);
+        wait(finish, holdMs);
     };
 
     const utterance = new SpeechSynthesisUtterance(text);
@@ -180,6 +232,15 @@ function speakThen(text, done, { synth, voice = null, wait = setTimeout, clear =
     return true;
 }
 
+// After a completed phrase: say it, pause 2s, say it again, pause 1s, then done
+const REPEAT_PAUSE_MS = 2000;
+const AFTER_REPEAT_MS = 1000;
+function sayTwiceThen(text, done, env = {}) {
+    return speakThen(text, () => {
+        if (!speakThen(text, done, { ...env, holdMs: AFTER_REPEAT_MS })) done();
+    }, { ...env, holdMs: REPEAT_PAUSE_MS });
+}
+
 // Wrap a delayed callback so it does nothing once the round has moved on
 function onlyIfCurrent(token, getCurrent, fn) {
     return () => {
@@ -191,8 +252,9 @@ if (typeof module !== 'undefined') {
     module.exports = {
         shuffleArray, escapeHtml, wordKey, sameWord, pickOtherWords, onlyIfCurrent,
         withTimeout, estimateSetBytes, SET_WARN_BYTES, SET_MAX_BYTES,
+        isImageRef, splitSetImages, hydrateSetImages, needsImages,
         toFirebaseCredentials,
         isPhraseSet, phraseText, buildChoices, pickPhrasePictures,
-        pickVoice, spokenText, speakThen, HOLD_AFTER_SPEECH_MS, SPEECH_MAX_WAIT_MS
+        pickVoice, spokenText, speakThen, sayTwiceThen, HOLD_AFTER_SPEECH_MS, SPEECH_MAX_WAIT_MS
     };
 }

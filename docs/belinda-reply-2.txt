@@ -1,0 +1,35 @@
+Hi Belinda
+
+No bother at all, this is the fun kind of work. All four things are done and live. One of them needs a little job from you (re-adding the pictures), explained below.
+
+1. More time after a phrase
+
+Done. When she gets a phrase right, the picture and both words stay on screen while it says the phrase, waits two seconds, says it again, then waits another second before moving on.
+
+2. Bigger word choices
+
+Done. In picture-to-words mode the picture and the two word spaces sit in the middle, with two big word cards on the left and two on the right. The words are much larger and never wrap or get cut off. There are four choices at each step (as long as the set has four different words to choose from). If she gets quick at four, let me know and we can go up.
+
+3. Old iPad minis
+
+The app now works WITHOUT signing in. Anyone can open it and play all the family sets, including the phrases. Signing in is only needed to edit them. So on the second mini (the one that opened but wouldn't log in), just open the app again and the phrase sets should be there.
+
+If you want it to open straight into the phrases, open this link in Safari and add it to the home screen:
+
+https://joeltempero.github.io/AsherWordMatch/?set=custom_1792447007190
+
+(That number is the "Animals doing things" set. If you make a new set and want a link for it, tell me the name and I'll send you its link.)
+
+The mini that won't load the app at all is probably a first-generation iPad mini, which stopped getting updates in 2016 and can't run modern web apps. I've made a couple of changes that might help the next model up (iPad mini 2 or 3), but I can't promise it. Could you tell me for each iPad: Settings > General > About, then the "Model Name" and "iOS Version"? And if the sign-in still fails on the second one, the app now shows a proper reason instead of just "wrong password", so tell me what it says.
+
+4. Blurry pictures
+
+You were right, and it was the app's fault, not your pictures. When you uploaded a picture the app shrank it to a tiny 150 x 150 pixel square to save space, then stretched it back up on the iPad's screen. That's why Asher's face went soft while the duck survived.
+
+I've fixed it so pictures are now saved four times larger (600 x 600) at higher quality, and they're stored separately so sets can hold as many phrases as you like. The one catch: the pictures you've already uploaded were shrunk when they went in, and that detail can't be recovered. To get them sharp you'll need to upload the original illustrations again (edit the set, tap each picture, choose the file, crop, save). Sorry about that. Anything you upload from now on will be sharp.
+
+A tighter crop helps too: the more of the square the face fills, the bigger it is on screen.
+
+Chicken and bird sound great. Say hi to Asher from us.
+
+Joel
