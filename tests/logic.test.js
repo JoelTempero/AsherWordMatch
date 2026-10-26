@@ -357,3 +357,21 @@ test('needsImages is true only while refs are unresolved', () => {
     assert.equal(L.needsImages({ items: [{ image: 'img:a' }] }), true);
     assert.equal(L.needsImages({ words: [{ image: DATA }, { image: 'x.png' }] }), false);
 });
+
+// --- Round 3 (2026-10-27) ---
+test('buildChoices can offer 8, capped by distinct words available', () => {
+    const many = [];
+    for (const a of ['cow', 'dog', 'cat', 'pig', 'hen', 'fox', 'owl', 'bee', 'ant']) many.push(p(a, 'eating'));
+    for (let i = 0; i < 20; i++) {
+        const c = L.buildChoices(many, many[0], 'first', 8);
+        assert.equal(c.length, 8);
+        assert.equal(new Set(c).size, 8);
+        assert.ok(c.includes('cow'));
+    }
+    assert.equal(L.buildChoices(twelve, twelve[0], 'first', 8).length, 4);
+});
+
+test('choiceCount: 8 animals, 4 verbs', () => {
+    assert.equal(L.choiceCount('first'), 8);
+    assert.equal(L.choiceCount('second'), 4);
+});

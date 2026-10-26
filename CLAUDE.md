@@ -44,17 +44,24 @@ Brain path: `D:/Sidequest Digital/Dev Projects/Brain/playbooks/`
 - Admin login: real email + password (Joel, Belinda). Sign-in is only needed to edit; 🔐 asks for the password only once a device is signed in
 - Firestore rules deployed 2026-10-25: anyone can read cardSets + images (anon read 200, anon write 403); only the two admin UIDs can write
 - Starter phrase set "Animals doing things" (custom_1792447007190) in Firestore — Belinda has ~24 phrases in it, all at the old 150px size (need re-upload to be sharp)
-- Reply to Belinda sent 2026-10-25 (Joel's revised version of `docs/belinda-reply-2.txt`); waiting on her response
+- v2.2 (2026-10-27, v=11): Belinda round 3 — 8 animal choices / 4 verb choices (`choiceCount`), single-word game: whole centre card is the drag handle, tap centre to select (purple ring + pulse), tap any answer card to answer; "iPad too old" ES5 fallback message
+- Belinda re-uploaded pictures (sharp now); "2 word phrases" set has 82 phrases
+- Home iPad mini = MD533X/A, first-gen, iOS 9.3.5 — unsupported (no arrow functions/async); now shows a message. School mini still to check
+- Reply to Belinda ready: `docs/belinda-reply-3.txt` (not sent)
 
 ## Next Steps
-1. Waiting on Belinda's reply (round 3 likely)
-2. Belinda: re-upload her phrase pictures (old ones were saved at 150px); send iPad mini models + iOS versions; report the new login error text if sign-in still fails
+1. Joel: send Belinda `docs/belinda-reply-3.txt`
+2. Belinda: send the school mini's Model + Version if it still misbehaves
 3. Test on a real iPad: side layout at portrait width, say-twice timing, offline play after first load, admin edit on a set that's been split
 4. If Belinda's mini is iOS 12: confirm Firebase SDK 10.7.1 actually runs there (syntax is clean now; SDK support untested)
 5. Optional deferred minors — auth+Firestore timeouts can stack; voiceschanged may not fire on iOS; import doesn't validate set shape; admin onclick uses raw set.id; `.phrase-main-picture` height fallback on iOS 12 phones is fixed 320px
 6. Later: progress record idea; raise choices from 4 when Belinda asks
 
 ## Session Log
+### 2026-10-27
+- Belinda round 3: 8 animal choices (4 a side, `.many-choices` shorter cards), tap-or-drag in single-word game (all 4 modes share it), ES5 too-old-iPad message
+- Browser-verified on the real sets: 8+4 choices fit without overflow; tap-select, wrong tap, right tap, edge drag, and pic-word tap all score correctly; 43 unit tests green
+
 ### 2026-10-25
 - Belinda round 2 (combined email): blur root cause = 150px crop output; fixed with per-image Firestore docs (600px q0.85) + persistence; rules opened to public read (Joel's call)
 - Say-twice completion (2s/1s), phrase-build 3-column layout with 4 big nowrap choices (2×2 under picture on phones), `?set=` link, iOS 12 cleanup (`??`/`?.`, clamp/aspect-ratio fallbacks), login error messages

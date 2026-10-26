@@ -1,0 +1,28 @@
+Hi Belinda
+
+So glad the pictures are sharp now, and 82 phrases is amazing! All three things are sorted and live (you may need to close and reopen the app once to pick up the update).
+
+1. More animal choices
+
+The animal step now shows eight choices, four on each side of the picture. The words are still big and nothing gets cut off. The "...ing" step stays at four, as you asked.
+
+2. Easier touch controls in the single-word game
+
+The whole middle card now responds to touch, not just the letters, so she can grab it anywhere, including the space around the word.
+
+She can also just tap now, in every direction:
+- Drag the middle card onto the matching picture (or word), or
+- Tap the middle card to select it. It gets a thick purple outline and the cards around it pulse. Then tap the match.
+- Or skip the selecting and tap the match straight away.
+
+The green and red still work exactly the same.
+
+3. The iPad mini at home
+
+Thanks for the details. That one is a first-generation iPad mini, and iOS 9.3.5 is the newest it can ever run. Its Safari is too old to understand the app's code at all, which is why the screen shows but nothing responds. Sadly there's no way to fix that without rebuilding the app for a 2012 browser. From now on it will at least say "this iPad is too old" instead of just sitting there.
+
+The school mini is probably a newer model, so it should be fine now that signing in isn't needed to play. If it still has trouble when it comes home, send me its Model and Version the same way and I'll take a look.
+
+Love seeing her enjoying it so much. Say hi to Asher!
+
+Joel

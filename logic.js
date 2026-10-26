@@ -141,6 +141,11 @@ function distinctWords(values) {
 }
 
 // Word choices for one slot ('first' | 'second'): the right word plus up to n-1 others from the set
+// Animals (first word) get 8 choices; the "...ing" words stay at 4 (similar endings are hard enough)
+function choiceCount(slot) {
+    return slot === 'first' ? 8 : 4;
+}
+
 function buildChoices(items, target, slot, n = 4) {
     const others = shuffleArray(distinctWords(items.map(it => it[slot])).filter(v => !sameWord(v, target[slot])));
     return shuffleArray([target[slot], ...others.slice(0, n - 1)]);
@@ -254,7 +259,7 @@ if (typeof module !== 'undefined') {
         withTimeout, estimateSetBytes, SET_WARN_BYTES, SET_MAX_BYTES,
         isImageRef, splitSetImages, hydrateSetImages, needsImages,
         toFirebaseCredentials,
-        isPhraseSet, phraseText, buildChoices, pickPhrasePictures,
+        isPhraseSet, phraseText, buildChoices, choiceCount, pickPhrasePictures,
         pickVoice, spokenText, speakThen, sayTwiceThen, HOLD_AFTER_SPEECH_MS, SPEECH_MAX_WAIT_MS
     };
 }

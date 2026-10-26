@@ -247,6 +247,15 @@
             cursor: pointer;
         }
 
+        /* 8 animal choices: four a side, a little shorter so they sit beside the picture */
+        .phrase-build.many-choices .phrase-choices {
+            gap: 14px;
+        }
+        .phrase-build.many-choices .phrase-choice {
+            min-height: 78px;
+            padding: 8px 16px;
+        }
+
         /* Phones: picture on top, the four words in a 2×2 underneath */
         @media (max-width: 639px) {
             .phrase-round.phrase-build {
@@ -305,6 +314,15 @@
             .set-card { min-height: 120px; }
         }
 
+        .old-device-note {
+            grid-column: 1 / -1;
+            padding: 20px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1.3rem;
+            color: #555;
+            text-align: center;
+        }
+
         .family-note {
             margin-top: 10px;
             font-size: 0.85rem;
@@ -353,6 +371,30 @@
             width: auto;
             height: auto;
             filter: none;
+        }
+
+        /* The whole centre card is the handle; answer cards are tappable */
+        .grid-cell.center-cell {
+            cursor: grab;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .grid-cell.word-cell {
+            cursor: pointer;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .grid-cell.center-cell.selected {
+            border: 5px solid var(--secondary);
+            box-shadow: 0 0 0 6px rgba(124, 77, 255, 0.35), var(--card-shadow);
+            transform: scale(1.06);
+        }
+
+        .grid-cell.center-word-cell.dragging {
+            opacity: 0.4;
         }
 
         .grid-cell.drop-target {
@@ -1164,7 +1206,17 @@
         </div>
     </div>
 
-    <script src="logic.js?v=10"></script>
-    <script src="app.js?v=10"></script>
+    <script src="logic.js?v=11"></script>
+    <script src="app.js?v=11"></script>
+    <script>
+        // Plain old JavaScript on purpose: if this iPad's Safari couldn't read app.js
+        // (first iPad mini, iOS 9), say so instead of showing a dead screen
+        if (typeof startGame !== 'function') {
+            var list = document.getElementById('setList');
+            if (list) {
+                list.innerHTML = '<p class="old-device-note">Sorry, this iPad is too old to run Word Match.<br>It needs iOS 12 or newer.</p>';
+            }
+        }
+    </script>
 </body>
 </html>

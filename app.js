@@ -806,15 +806,30 @@ function renderCurrentRound() {
     setupDragAndDrop();
 }
 
-// Active drag: { el, clone, touchId } - one at a time
+// Active drag: { el, cell, clone, touchId, startX, startY } - one at a time
 let drag = null;
+const TAP_SLOP_PX = 12; // moved less than this = a tap, not a drag
 
-// Bind drag start on this round's draggable (document-level handlers are bound once)
+// The whole centre card can be grabbed (not just the letters or the picture),
+// and every surrounding card can simply be tapped. Document-level handlers are bound once.
 function setupDragAndDrop() {
-    const draggable = document.getElementById('draggablePic');
-    if (!draggable) return;
-    draggable.addEventListener('touchstart', startDrag, { passive: false });
-    draggable.addEventListener('mousedown', startDrag);
+    const centre = gameGrid.querySelector('.center-cell');
+    if (!centre) return;
+    centre.addEventListener('touchstart', startDrag, { passive: false });
+    centre.addEventListener('mousedown', startDrag);
+
+    gameGrid.querySelectorAll('.word-cell').forEach(cell => {
+        cell.addEventListener('click', () => {
+            if (drag || gameState.roundLocked) return;
+            handleDrop(cell, cell.dataset.correct === 'true');
+        });
+    });
+}
+
+// Tapping the centre card highlights it and makes the answer cards pulse: "now tap one"
+function toggleCentreSelected(cell) {
+    const selected = cell.classList.toggle('selected');
+    gameGrid.querySelectorAll('.word-cell').forEach(c => c.classList.toggle('drop-target', selected));
 }
 
 // Find this drag's point in a touch or mouse event (null if the event isn't ours)
@@ -828,7 +843,9 @@ function startDrag(e) {
     // Ignore a second finger, or anything while the round is finishing
     if (drag || gameState.roundLocked) return;
 
-    const el = e.currentTarget;
+    // A word in the centre drags as the whole card; a picture drags as the picture
+    const cell = e.currentTarget;
+    const el = cell.classList.contains('center-word-cell') ? cell : (document.getElementById('draggablePic') || cell);
     const touch = e.changedTouches ? e.changedTouches[0] : e;
 
     // Create clone for dragging
@@ -841,11 +858,11 @@ function startDrag(e) {
     clone.style.top = (touch.clientY - el.offsetHeight / 2) + 'px';
     document.body.appendChild(clone);
 
-    drag = { el, clone, touchId: e.changedTouches ? touch.identifier : null };
+    drag = { el, cell, clone, touchId: e.changedTouches ? touch.identifier : null, startX: touch.clientX, startY: touch.clientY };
     el.classList.add('dragging');
-    
+
     // Highlight potential drop targets
-    document.querySelectorAll('.word-cell').forEach(cell => cell.classList.add('drop-target'));
+    document.querySelectorAll('.word-cell').forEach(c => c.classList.add('drop-target'));
 }
 
 function moveDrag(e) {
@@ -860,7 +877,9 @@ function moveDrag(e) {
 function clearDrag() {
     drag.clone.remove();
     drag.el.classList.remove('dragging');
-    document.querySelectorAll('.word-cell').forEach(cell => cell.classList.remove('drop-target'));
+    // Keep the "tap one" pulse if the centre card is still selected
+    const keepPulse = drag.cell.classList.contains('selected');
+    document.querySelectorAll('.word-cell').forEach(cell => cell.classList.toggle('drop-target', keepPulse));
     drag = null;
 }
 
@@ -868,7 +887,14 @@ function endDrag(e) {
     if (!drag) return;
     const point = dragPoint(e);
     if (!point) return;
+    const { cell, startX, startY } = drag;
     clearDrag();
+
+    // Barely moved: it was a tap on the centre card - select / unselect it
+    if (Math.abs(point.clientX - startX) < TAP_SLOP_PX && Math.abs(point.clientY - startY) < TAP_SLOP_PX) {
+        toggleCentreSelected(cell);
+        return;
+    }
 
     // Check which cell was dropped on
     const dropTarget = document.elementFromPoint(point.clientX, point.clientY);
@@ -984,8 +1010,10 @@ function renderPhraseRound() {
 
 function renderPhraseChoices(slot) {
     const item = gameState.wordsToPlay[gameState.currentWordIndex];
-    const choices = buildChoices(gameState.currentSet.items, item, slot);
+    const choices = buildChoices(gameState.currentSet.items, item, slot, choiceCount(slot));
     const half = Math.ceil(choices.length / 2);
+    // 3-4 a side: slightly shorter cards so the columns still fit beside the picture
+    gameGrid.querySelector('.phrase-build').classList.toggle('many-choices', half > 2);
     const columns = [
         [document.getElementById('phraseChoicesLeft'), choices.slice(0, half)],
         [document.getElementById('phraseChoicesRight'), choices.slice(half)]
